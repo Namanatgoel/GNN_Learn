@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GNN Masterclass: From First Principles to Advanced Systems</title>
+  <meta name="description" content="A comprehensive masterclass on Graph Neural Networks: non-Euclidean topology, spectral Laplacians, MPNN framework, Zachary's Karate Club benchmark, dynamic GAT attention, and RTX 5050 experiments.">
+  <link rel="stylesheet" href="learn/web/style.css">
+
+  <!-- KaTeX with resilient fallback -->
+  <link rel="stylesheet" href="learn/web/vendor/katex/katex.min.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';">
+  <script src="learn/web/vendor/katex/katex.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';"></script>
+  <script src="learn/web/vendor/katex/auto-render.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js';"></script>
+
+  <!-- Mermaid.js with resilient fallback -->
+  <script src="learn/web/vendor/mermaid/mermaid.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';"></script>
+
+  <!-- Interactive Flowchart Zoom and Pan Engine -->
+  <script src="learn/web/flowchart-zoom.js"></script>
+
+  <!-- Robust Math Loader and Latent LaTeX Source Inspector -->
+  <script src="learn/web/math-code-loader.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.mermaid) {
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <!-- Unified Sticky Sidebar Navigation -->
+  <nav id="sidebar" aria-label="Course Navigation">
+    <div class="sidebar-brand">GNN Masterclass</div>
+
+    <h3>Part 1: Foundations</h3>
+    <ul>
+      <li><a href="#why-gnns" class="active">1. Why Standard NNs Fail</a></li>
+      <li><a href="#graph-math">2. Mathematical Foundations</a></li>
+      <li><a href="#intuition">3. Flow as Diffusion</a></li>
+      <li><a href="#mpnn">4. The MPNN Framework</a></li>
+      <li><a href="#solved-example">5. Solved Numerical Example</a></li>
+      <li><a href="#architectures">6. Foundational Architectures</a></li>
+      <li><a href="#interactive-sim">7. Interactive Multi-Mode Sim</a></li>
+      <li><a href="#bottlenecks">8. Expressive Power &amp; Limits</a></li>
+      <li><a href="#scratch-python">9. NumPy Engine from Scratch</a></li>
+    </ul>
+
+    <h3 style="margin-top: 1.5rem;">Part 2: Advanced Systems</h3>
+    <ul>
+      <li><a href="#bridge">10. Foundations Bridge</a></li>
+      <li><a href="#karate-club">11. Karate Club Explorer</a></li>
+      <li><a href="#matrix-mechanics">12. GCN &amp; Renormalization</a></li>
+      <li><a href="#graphsage-karate">13. GraphSAGE &amp; Sampling</a></li>
+      <li><a href="#gat-attention">14. GAT &amp; Dynamic Attention</a></li>
+      <li><a href="#graph-gps">15. GraphGPS &amp; k-WL Limits</a></li>
+      <li><a href="#gcn-experiment">16. Static GCN Results</a></li>
+      <li><a href="#stgcn-experiment">17. ST-GCN Sign Results</a></li>
+      <li><a href="#pyg-code">18. PyG Production Code</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main Scrollable Content Area -->
+  <main id="content">
+    <div class="page-banner">
+      <span class="banner-title">GNN Masterclass: Complete Curriculum (Parts 1 &amp; 2)</span>
+      <div>
+        <a href="#why-gnns" class="banner-link">Part 1: Foundations</a>
+        <a href="#bridge" class="banner-link" style="margin-left: 0.5rem;">Part 2: Advanced Systems &rarr;</a>
+      </div>
+    </div>
+
+    <!-- PART 1 HEADER -->
+    <header id="part-1-header">
+      <h1>Graph Neural Networks: First Principles</h1>
+      <div class="header-meta">
+        <span class="badge badge-primary">Foundational Theory</span>
+        <span class="badge">Scope: Topology / MPNN / Matrix Math</span>
+        <span class="badge">Interactive Engine: 5-Node Diffusion</span>
+        <span class="badge">Reference: Kipf &amp; Welling / Gilmer et al.</span>
+      </div>
+      <p style="margin-top: 0.75rem; color: var(--text-muted);">
+        A rigorous introduction to Graph Neural Networks from ground-level mathematics.
+        This document explains why Euclidean deep learning fails on irregular relations, derives the message passing framework, calculates a complete forward pass by hand, and tests discrete diffusion interactively.
+      </p>
+    </header>
+
+    <!-- PART 1 SECTIONS (1 to 9) -->
+<section id="why-gnns">
+      <h2>1. Why Standard Neural Networks Fail on Graphs</h2>
+      <p>
+        A standard Multi-Layer Perceptron (MLP) assumes fixed-dimensional input vectors with a fixed canonical ordering of features.
+
+        A Convolutional Neural Network (CNN) operates strictly on regular Euclidean grids.
+
+        An image is a rectangular grid where every interior pixel has exactly 8 neighbors, and directional coordinates (up, down, left, right) are globally invariant.
+      </p>
+
+      <p>
+        Graphs break all of these structural assumptions.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Structural Property</th>
+            <th>Grid / Images (CNN) / Text (RNN)</th>
+            <th>Graphs (GNN)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Coordinate System</strong></td>
+            <td>Euclidean space with fixed axes (row, column).</td>
+            <td>Non-Euclidean. No global axes or universal directions exist.</td>
+          </tr>
+          <tr>
+            <td><strong>Node Degree</strong></td>
+            <td>Constant (interior pixel degree is always 8).</td>
+            <td>Arbitrary degree distribution. A vertex can have 1 neighbor or 10,000 neighbors.</td>
+          </tr>
+          <tr>
+            <td><strong>Vertex Ordering</strong></td>
+            <td>Fixed canonical sequence: index 0 is top-left.</td>
+            <td>No canonical ordering. Permutation of vertices in memory must not alter output representations.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>The Decoupling of Signal and Structure</h3>
+      <p>
+        In standard computer vision, structure and signal are fused: the pixel grid itself is the coordinate space.
+
+        Graphs explicitly decouple the structure from the signal.
+
+        The structure is defined by connectivity relations (edges), while the signal consists of feature vectors assigned to vertices.
+      </p>
+
+      <h3>Permutation Symmetries</h3>
+      <p>
+        Let $A \in \{0, 1\}^{N \times N}$ be the adjacency matrix, and let $X \in \mathbb{R}^{N \times F}$ be the node feature matrix.
+
+        Let $P \in \{0, 1\}^{N \times N}$ be an arbitrary permutation matrix satisfying $P^T P = I$.
+
+        Any valid graph function must satisfy two algebraic symmetries:
+      </p>
+
+      <div class="math-card">
+        <div class="math-card-header">
+          <span>Algebraic Symmetries of Graph Functions</span>
+          <span>Permutation Symmetries</span>
+        </div>
+        <div class="math-step-list">
+          <div class="math-step-row">
+            <div class="math-step-formula">$$f(P A P^T, P X) = P f(A, X)$$</div>
+            <div class="math-step-desc"><strong>Permutation Equivariance:</strong> Node-level tasks. Permuting inputs permutes output representations identically.</div>
+          </div>
+          <div class="math-step-row">
+            <div class="math-step-formula">$$f(P A P^T, P X) = f(A, X)$$</div>
+            <div class="math-step-desc"><strong>Permutation Invariance:</strong> Graph-level tasks. Permuting input indices produces the exact same scalar or class prediction.</div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        Flattening $A$ and $X$ into an MLP violates equivariance because changing row indices routes features to completely different neural weights.
+      </p>
+    </section>
+
+    <!-- SECTION 2 -->
+    <section id="graph-math">
+      <h2>2. Mathematical Foundations of Graphs</h2>
+      <p>
+        A graph is formally defined as $G = (V, E)$, where $V$ is the set of $N = |V|$ vertices and $E$ is the set of $M = |E|$ edges.
+
+        The core algebraic operators are:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Adjacency Matrix $A \in \mathbb{R}^{N \times N}$</strong>:
+          $$A_{ij} = \begin{cases} 1 & \text{if } (v_i, v_j) \in E \\ 0 & \text{otherwise} \end{cases}$$
+        </li>
+        <li>
+          <strong>Degree Matrix $D \in \mathbb{R}^{N \times N}$</strong>: A diagonal matrix where each diagonal entry is the row sum of $A$:
+          $$D_{ii} = \sum_{j=1}^N A_{ij}, \quad D_{ij} = 0 \text{ for } i \neq j$$
+        </li>
+        <li>
+          <strong>Unnormalized Graph Laplacian $L$</strong>:
+          $$L = D - A$$
+        </li>
+        <li>
+          <strong>Symmetric Normalized Laplacian $L_{\text{sym}}$</strong>:
+          $$L_{\text{sym}} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} A D^{-1/2}$$
+        </li>
+      </ul>
+
+      <h3>Physical Significance of the Unnormalized Graph Laplacian ($L = D - A$)</h3>
+      <p>
+        The unnormalized Laplacian $L$ is the discrete analog of the continuous Laplace-Beltrami operator $\Delta f = \nabla^2 f = \text{div}(\nabla f)$.
+
+        In continuous physics, the Laplacian measures the net flux or divergence of the gradient of a field.
+
+        On a graph, for any scalar signal $x \in \mathbb{R}^N$ defined on vertices, the $i$-th entry of $L x$ is:
+      </p>
+      $$(L x)_i = (D x)_i - (A x)_i = d_i x_i - \sum_{j \in \mathcal{N}(i)} x_j = \sum_{j \in \mathcal{N}(i)} (x_i - x_j)$$
+
+      <p>
+        This equation computes the exact difference between the signal at node $i$ and each of its immediate neighbors.
+
+        If $(L x)_i > 0$, node $i$ has a higher value than the average of its neighbors, representing a local peak where signal diffuses outward.
+
+        If $(L x)_i < 0$, node $i$ sits in a local trough where signal flows inward.
+
+        If $(L x)_i = 0$, node $i$ equals its local neighborhood average, satisfying the discrete mean-value property (a discrete harmonic function).
+      </p>
+
+      <p>
+        The entries of $L$ hold direct physical meaning:
+      </p>
+      <ul>
+        <li><strong>Diagonal entries $L_{ii} = d_i$:</strong> The total capacity or degree of vertex $i$.</li>
+        <li><strong>Off-diagonal entries $L_{ij} = -1$ if $(i, j) \in E$, and $0$ otherwise:</strong> The negative conductivity along edge $(i, j)$.</li>
+        <li><strong>Row sum property:</strong> Every row sums to zero: $\sum_{j=1}^N L_{ij} = d_i - \sum_{j=1}^N A_{ij} = 0$. Consequently, the constant vector $\mathbf{1} = [1, \dots, 1]^T$ is always an eigenvector with eigenvalue $\lambda_0 = 0$.</li>
+      </ul>
+
+      <p>
+        The quadratic form of $L$ is known as the <strong>Dirichlet Energy</strong> of signal $x$:
+      </p>
+      $$x^T L x = \sum_{i=1}^N x_i \sum_{j \in \mathcal{N}(i)} (x_i - x_j) = \frac{1}{2} \sum_{i,j=1}^N A_{ij} (x_i - x_j)^2 \ge 0$$
+
+      <p>
+        The Dirichlet energy measures the total smoothness or high-frequency variation of the signal across the graph edges.
+
+        If $x$ is identical across all connected vertices, $x^T L x = 0$.
+
+        If $x$ oscillates rapidly across adjacent vertices, $x^T L x$ takes a large positive value.
+      </p>
+
+      <h3>Physical Significance of the Symmetric Normalized Laplacian ($L_{\text{sym}}$)</h3>
+      <p>
+        In real graphs, degrees vary widely.
+
+        A high-degree hub with $d_i = 100$ has an unnormalized diagonal entry of $100$, while a peripheral leaf node has $d_j = 1$.
+
+        In unnormalized diffusion, signals at hub nodes explode in magnitude, distorting numerical stability.
+      </p>
+
+      <p>
+        The Symmetric Normalized Laplacian $L_{\text{sym}} = D^{-1/2} L D^{-1/2} = I - D^{-1/2} A D^{-1/2}$ normalizes edge flow by the geometric mean of the degrees:
+      </p>
+      $$(L_{\text{sym}})_{ij} = \begin{cases} 1 & \text{if } i = j \text{ and } d_i > 0 \\ -\frac{1}{\sqrt{d_i d_j}} & \text{if } (i, j) \in E \\ 0 & \text{otherwise} \end{cases}$$
+
+      <p>
+        This normalization guarantees that the entire eigenvalue spectrum of $L_{\text{sym}}$ is bounded within the real interval $[0, 2]$.
+
+        This spectral bound prevents signals from exploding under repeated multi-step diffusion.
+      </p>
+
+      <h3>Concrete 3-Node Matrix Arithmetic Example</h3>
+      <p>
+        Consider a 3-node path graph: $v_1 - v_2 - v_3$.
+
+        Vertex $v_2$ is the central bridge with degree 2, while $v_1$ and $v_3$ are leaves with degree 1.
+      </p>
+
+      <div class="math-block">
+        <h4>1. Fundamental Matrices</h4>
+        <p><strong>Adjacency Matrix $A$ and Degree Matrix $D$:</strong></p>
+        $$A = \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix}, \quad D = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 2 & 0 \\ 0 & 0 & 1 \end{bmatrix}$$
+
+        <p><strong>Unnormalized Graph Laplacian ($L = D - A$):</strong></p>
+        $$L = \begin{bmatrix} 1 & 0 & 0 \\ 0 & 2 & 0 \\ 0 & 0 & 1 \end{bmatrix} - \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} = \begin{bmatrix} 1 & -1 & 0 \\ -1 & 2 & -1 \\ 0 & -1 & 1 \end{bmatrix}$$
+
+        <p><strong>Symmetric Normalized Laplacian ($L_{\text{sym}} = I - D^{-1/2} A D^{-1/2}$):</strong></p>
+        $$D^{-1/2} = \begin{bmatrix} 1 & 0 & 0 \\ 0 & \frac{1}{\sqrt{2}} & 0 \\ 0 & 0 & 1 \end{bmatrix}$$
+        $$L_{\text{sym}} = \begin{bmatrix} 1 & -\frac{1}{\sqrt{2}} & 0 \\ -\frac{1}{\sqrt{2}} & 1 & -\frac{1}{\sqrt{2}} \\ 0 & -\frac{1}{\sqrt{2}} & 1 \end{bmatrix} \approx \begin{bmatrix} 1.000 & -0.707 & 0.000 \\ -0.707 & 1.000 & -0.707 \\ 0.000 & -0.707 & 1.000 \end{bmatrix}$$
+      </div>
+
+      <div class="math-block">
+        <h4>2. Signal Operation &amp; Dirichlet Energy</h4>
+        <p>Assign a scalar signal vector $x = [10, 2, 4]^T$ to nodes $(v_1, v_2, v_3)$.</p>
+
+        <p><strong>Computing Local Flux ($L x$):</strong></p>
+        $$L x = \begin{bmatrix} 1 & -1 & 0 \\ -1 & 2 & -1 \\ 0 & -1 & 1 \end{bmatrix} \begin{bmatrix} 10 \\ 2 \\ 4 \end{bmatrix} = \begin{bmatrix} (1)(10) + (-1)(2) + (0)(4) \\ (-1)(10) + (2)(2) + (-1)(4) \\ (0)(10) + (-1)(2) + (1)(4) \end{bmatrix} = \begin{bmatrix} 8 \\ -10 \\ 2 \end{bmatrix}$$
+
+        <p>
+          Notice the net sum of flux: $8 + (-10) + 2 = 0$.
+
+          This demonstrates the physical law of conservation in a closed diffusion system: the outward flow from nodes 1 and 3 exactly balances the inward accumulation at central bridge node 2.
+        </p>
+
+        <p><strong>Computing Dirichlet Energy ($x^T L x$):</strong></p>
+        $$x^T L x = \begin{bmatrix} 10 & 2 & 4 \end{bmatrix} \begin{bmatrix} 8 \\ -10 \\ 2 \end{bmatrix} = 10(8) + 2(-10) + 4(2) = 80 - 20 + 8 = 68$$
+
+        <p>Using the pairwise edge summation directly:</p>
+        $$x^T L x = (x_1 - x_2)^2 + (x_2 - x_3)^2 = (10 - 2)^2 + (2 - 4)^2 = 8^2 + (-2)^2 = 64 + 4 = 68$$
+
+        <p>Both mathematical paths yield the exact same value: $68$.</p>
+      </div>
+    </section>
+
+    <!-- SECTION 3 -->
+    <section id="intuition">
+      <h2>3. Information Flow as Diffusion</h2>
+      <div class="intuition-box">
+        <h4>The Continuous Diffusion Perspective</h4>
+        <p>
+          A Graph Neural Network operates fundamentally as a localized diffusion process across discrete topology.
+
+          Unlike traditional models that treat points in isolation, GNNs leverage relational inductive bias.
+        </p>
+        <ul>
+          <li><strong>Layer 0:</strong> Each node holds only its isolated feature vector $h_v^{(0)}$ (local identity).</li>
+          <li><strong>Layer 1:</strong> Every node exchanges representations with direct 1-hop neighbors. Node $v$ now understands its immediate local neighborhood.</li>
+          <li><strong>Layer K:</strong> After $K$ message-passing layers, node $v$ encodes the entire $K$-hop subgraph around it. The receptive field expands radially outward by exactly one hop per layer.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION 4 -->
+    <section id="mpnn">
+      <h2>4. The Message Passing Framework (MPNN)</h2>
+      <p>
+        Gilmer et al. (2017) unified spatial GNN formulations into the Message Passing Neural Network (MPNN) paradigm.
+
+        A single layer $k$ executes three core primitives:
+      </p>
+
+      <div class="callout">
+        <ol>
+          <li>
+            <strong>Message Generation:</strong> Neighboring vertices construct a vector along each incident edge:
+            $$m_{u \to v}^{(k)} = \text{MSG}^{(k)}\left(h_v^{(k-1)}, h_u^{(k-1)}, e_{vu}\right)$$
+          </li>
+          <li>
+            <strong>Neighborhood Aggregation:</strong> A permutation-invariant reduction operator pools incoming messages:
+            $$a_v^{(k)} = \bigoplus_{u \in \mathcal{N}(v)} m_{u \to v}^{(k)}, \quad \bigoplus \in \{\text{Sum}, \text{Mean}, \text{Max}\}$$
+          </li>
+          <li>
+            <strong>Node Update:</strong> Combines the prior state with the aggregated neighborhood vector:
+            $$h_v^{(k)} = \text{UPDATE}^{(k)}\left(h_v^{(k-1)}, a_v^{(k)}\right)$$
+          </li>
+        </ol>
+      </div>
+
+      <h3>Why a Permutation-Invariant Reduction Operator?</h3>
+      <p>
+        In computer memory, nodes and edges must be stored sequentially as arrays or tensors.
+
+        However, graph vertices possess no canonical physical ordering.
+
+        For central node $v_2$ with neighbors $\{v_1, v_3\}$, reading incoming messages as $(m_1, m_3)$ or $(m_3, m_1)$ is an arbitrary implementation detail.
+      </p>
+
+      <p>
+        If an aggregation operator were sensitive to sequence order (such as direct vector concatenation: $[m_1 \,\|\, m_3] \neq [m_3 \,\|\, m_1]$), shuffling node rows in memory would alter the output representations.
+
+        Therefore, any valid graph neighborhood reduction operator $\bigoplus$ must operate strictly on an unordered multiset of messages $\mathcal{M}$:
+      </p>
+      $$\bigoplus(\pi(\mathcal{M})) = \bigoplus(\mathcal{M}) \quad \forall \pi \in \mathcal{S}_{|\mathcal{M}|}$$
+
+      <h3>Operator Trade-offs: Sum vs Mean vs Max vs Median</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Operator</th>
+            <th>Mathematical Formula</th>
+            <th>Primary Advantage</th>
+            <th>Primary Limitation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Sum</strong></td>
+            <td>$a_v = \sum_{u \in \mathcal{N}(v)} m_u$</td>
+            <td>Injective over countable multisets. Preserves neighborhood cardinality (degree count), crucial for distinguishing structural graph motifs.</td>
+            <td>Susceptible to gradient explosion on high-degree hubs because output magnitude scales linearly with degree.</td>
+          </tr>
+          <tr>
+            <td><strong>Mean</strong></td>
+            <td>$a_v = \frac{1}{|\mathcal{N}(v)|} \sum_{u \in \mathcal{N}(v)} m_u$</td>
+            <td>Scale-invariant. Keeps the aggregated vector strictly within the convex hull of neighbor features, stabilizing multi-layer training.</td>
+            <td>Fails to distinguish between a node with 1 neighbor possessing feature $x$ and a node with 20 neighbors possessing feature $x$.</td>
+          </tr>
+          <tr>
+            <td><strong>Max</strong></td>
+            <td>$a_v = \max_{u \in \mathcal{N}(v)} m_u$</td>
+            <td>Identifies the single most prominent feature signal in the neighborhood. Robust to noisy, irrelevant neighbors.</td>
+            <td>Discards all neighborhood density and cardinality information, collapsing distinct subgraphs into identical maximums.</td>
+          </tr>
+          <tr>
+            <td><strong>Median</strong></td>
+            <td>$a_v = \text{median}_{u \in \mathcal{N}(v)} m_u$</td>
+            <td>Exceptional statistical robustness against adversarial outliers and noisy edge connections.</td>
+            <td>Non-differentiable step transitions; computationally expensive $\mathcal{O}(d \log d)$ sorting per node.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>MPNN General Cycle Flowchart</h3>
+      <div class="mermaid">
+graph LR
+    subgraph MPNN ["Single MPNN Layer Pipeline"]
+        M1["1. Message Generation<br><span class='f-math'>m_{u \\to v} = \\text{MSG}(h_u, h_v)</span>"]
+        M2["2. Edge Routing<br>Collect messages along graph edges"]
+        M3["3. Invariant Reduction<br><span class='f-math'>a_v = \\bigoplus_{u \\in \\mathcal{N}(v)} m_{u \\to v}</span>"]
+        M4["4. State Update<br><span class='f-math'>h_v^{(k)} = \\text{UPDATE}(h_v^{(k-1)}, a_v)</span>"]
+        M1 --> M2 --> M3 --> M4
+    end
+      </div>
+    </section>
+
+    <!-- SECTION 5 -->
+    <section id="solved-example">
+      <h2>5. Fully Solved Numerical Example</h2>
+      <p>
+        To demonstrate matrix-based message passing step by step, we compute a forward pass on our 3-node path graph ($v_1 - v_2 - v_3$).
+
+        We track every intermediate matrix product and explicitly compare the mathematical choices between Sum, Mean, and Symmetric Normalization.
+      </p>
+
+      <div class="math-block">
+        <h4>Step 1: Define Initial State and Self-Loop Topology</h4>
+        <p><strong>Graph Topology:</strong> 3 vertices with edges $(v_1, v_2)$ and $(v_2, v_3)$.</p>
+
+        <p><strong>Self-Loop Adjacency Matrix ($\tilde{A} = A + I$):</strong></p>
+        $$\tilde{A} = \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} + \begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 1 \end{bmatrix}$$
+
+        <p><strong>Initial Node Feature Matrix ($H^{(0)} \in \mathbb{R}^{3 \times 2}$):</strong></p>
+        $$H^{(0)} = \begin{bmatrix} 1 & -1 \\ 2 & 0 \\ -1 & 3 \end{bmatrix} \begin{array}{l} \leftarrow v_1 \\ \leftarrow v_2 \\ \leftarrow v_3 \end{array}$$
+
+        <p><strong>Learned Projection Weight Matrix ($W^{(0)} \in \mathbb{R}^{2 \times 2}$):</strong></p>
+        $$W^{(0)} = \begin{bmatrix} 1 & 2 \\ -1 & 1 \end{bmatrix}$$
+      </div>
+
+      <div class="math-block">
+        <h4>Step 2: Linear Projection (Message Construction)</h4>
+        <p>Compute $Z = H^{(0)} W^{(0)}$. This maps raw node features into the 2-dimensional message space:</p>
+        $$Z = \begin{bmatrix} 1 & -1 \\ 2 & 0 \\ -1 & 3 \end{bmatrix} \begin{bmatrix} 1 & 2 \\ -1 & 1 \end{bmatrix}$$
+        <ul>
+          <li><strong>Row 1 ($v_1$):</strong> $[(1)(1) + (-1)(-1), \; (1)(2) + (-1)(1)] = [1 + 1, \; 2 - 1] = [2, 1]$</li>
+          <li><strong>Row 2 ($v_2$):</strong> $[(2)(1) + (0)(-1), \; (2)(2) + (0)(1)] = [2 + 0, \; 4 + 0] = [2, 4]$</li>
+          <li><strong>Row 3 ($v_3$):</strong> $[(-1)(1) + (3)(-1), \; (-1)(2) + (3)(1)] = [-1 - 3, \; -2 + 3] = [-4, 1]$</li>
+        </ul>
+        $$Z = \begin{bmatrix} 2 & 1 \\ 2 & 4 \\ -4 & 1 \end{bmatrix}$$
+      </div>
+
+      <div class="math-block">
+        <h4>Step 3: Neighborhood Aggregation (Comparing Operators)</h4>
+        <p>Now observe the consequences of selecting different aggregation operators on this exact intermediate matrix $Z$:</p>
+
+        <p><strong>Option A: Raw Sum Aggregation ($M_{\text{sum}} = \tilde{A} Z$):</strong></p>
+        $$M_{\text{sum}} = \begin{bmatrix} 1 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 1 \end{bmatrix} \begin{bmatrix} 2 & 1 \\ 2 & 4 \\ -4 & 1 \end{bmatrix} = \begin{bmatrix} 2 + 2 + 0 & 1 + 4 + 0 \\ 2 + 2 - 4 & 1 + 4 + 1 \\ 0 + 2 - 4 & 0 + 4 + 1 \end{bmatrix} = \begin{bmatrix} 4 & 5 \\ 0 & 6 \\ -2 & 5 \end{bmatrix}$$
+
+        <p><strong>Option B: Degree-Normalized Mean Aggregation ($M_{\text{mean}} = \tilde{D}^{-1} \tilde{A} Z$):</strong></p>
+        <p>Degrees with self-loops are $\tilde{d}_1 = 2, \tilde{d}_2 = 3, \tilde{d}_3 = 2$. Row-normalizing yields:</p>
+        $$M_{\text{mean}} = \begin{bmatrix} 1/2 & 0 & 0 \\ 0 & 1/3 & 0 \\ 0 & 0 & 1/2 \end{bmatrix} \begin{bmatrix} 4 & 5 \\ 0 & 6 \\ -2 & 5 \end{bmatrix} = \begin{bmatrix} 2.0 & 2.5 \\ 0.0 & 2.0 \\ -1.0 & 2.5 \end{bmatrix}$$
+
+        <p><strong>Option C: Kipf-Welling Symmetric Normalization ($M_{\text{sym}} = \tilde{D}^{-1/2} \tilde{A} \tilde{D}^{-1/2} Z$):</strong></p>
+        $$\tilde{D}^{-1/2} = \text{diag}\left(\frac{1}{\sqrt{2}}, \frac{1}{\sqrt{3}}, \frac{1}{\sqrt{2}}\right) \approx \text{diag}(0.707, 0.577, 0.707)$$
+        $$\hat{A} = \begin{bmatrix} 0.500 & 0.408 & 0.000 \\ 0.408 & 0.333 & 0.408 \\ 0.000 & 0.408 & 0.500 \end{bmatrix}$$
+        $$M_{\text{sym}} = \hat{A} Z \approx \begin{bmatrix} 1.816 & 2.132 \\ -0.150 & 2.148 \\ -1.184 & 2.132 \end{bmatrix}$$
+
+        <p><strong>Option D: Max-Pooling Aggregation ($M_{\text{max}}$):</strong></p>
+        <ul>
+          <li><strong>Node 1 (takes max of $v_1, v_2$):</strong> $\max([2, 1], [2, 4]) = [2, 4]$</li>
+          <li><strong>Node 2 (takes max of $v_1, v_2, v_3$):</strong> $\max([2, 1], [2, 4], [-4, 1]) = [2, 4]$</li>
+          <li><strong>Node 3 (takes max of $v_2, v_3$):</strong> $\max([2, 4], [-4, 1]) = [2, 4]$</li>
+        </ul>
+        $$M_{\text{max}} = \begin{bmatrix} 2 & 4 \\ 2 & 4 \\ 2 & 4 \end{bmatrix}$$
+        <p>
+          Notice that under Max-pooling, all three nodes produce identical vectors $[2, 4]$ despite their different positions in the graph.
+
+          This highlights why Max pooling loses structural density.
+        </p>
+      </div>
+
+      <div class="math-block">
+        <h4>Step 4: Non-Linear Activation (ReLU)</h4>
+        <p>Applying the element-wise Rectified Linear Unit $\text{ReLU}(x) = \max(0, x)$ to the Sum aggregation matrix $M_{\text{sum}}$:</p>
+        $$H^{(1)} = \text{ReLU}\left( \begin{bmatrix} 4 & 5 \\ 0 & 6 \\ -2 & 5 \end{bmatrix} \right) = \begin{bmatrix} 4 & 5 \\ 0 & 6 \\ 0 & 5 \end{bmatrix}$$
+        <p>
+          <strong>Outcome:</strong> Node $v_3$'s first feature became $0$ because the negative aggregated influence ($-2$) was filtered out by ReLU.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 6 -->
+    <section id="architectures">
+      <h2>6. Foundational Architectures</h2>
+      <p>
+        The field of Graph Neural Networks evolved through distinct architectural breakthroughs, chronologically addressing the limitations of earlier paradigms.
+      </p>
+
+      <!-- GCN -->
+      <h3>1. Graph Convolutional Network (GCN) - Kipf &amp; Welling (2017)</h3>
+      <p>
+        Kipf and Welling introduced the localized first-order spectral approximation to graph convolutions.
+
+        The architecture bridges spatial message passing with spectral filtering.
+      </p>
+
+      <div class="mermaid">
+graph TD
+    %% Custom Styling
+    classDef paradigm fill:#1f77b4,stroke:#333,stroke-width:2px,color:#fff;
+    classDef core fill:#2ca02c,stroke:#333,stroke-width:2px,color:#fff;
+    classDef process fill:#e377c2,stroke:#333,stroke-width:1px,color:#fff;
+    classDef formula fill:#ff7f0e,stroke:#333,stroke-width:2px,color:#fff;
+    classDef concept fill:#9467bd,stroke:#333,stroke-width:1px,color:#fff;
+
+    %% -------------------------------------------------------------
+    %% THE ANCESTRY / INSPIRATION LAYER
+    %% -------------------------------------------------------------
+    subgraph INSPIRATION ["The Two Parent Paradigms"]
+        GNN["GNN PARADIGM<br>(Message Passing Framework)"]:::paradigm
+        CNN["CONVOLUTIONAL PARADIGM<br>(Image Processing Logic)"]:::paradigm
+        
+        GNN_1["Rule: Graph nodes learn by aggregating data from local neighbors"]:::concept
+        CNN_1["Rule: Apply shared weights (filters) locally across a uniform grid"]:::concept
+        
+        GNN --> GNN_1
+        CNN --> CNN_1
+    end
+
+    %% -------------------------------------------------------------
+    %% THE PROBLEM & THE FUSION
+    %% -------------------------------------------------------------
+    subgraph FUSION ["The GCN Mutation"]
+        PROB{"The Friction:<br>Graphs are not regular grids.<br>Nodes have different numbers of neighbors!"}:::concept
+        FUSE_OP["GCN SOLUTION:<br>Use GNN message passing to collect variable neighbors,<br>but use CNN weight-sharing to transform the features."]:::core
+        
+        GNN_1 --> PROB
+        CNN_1 --> PROB
+        PROB --> FUSE_OP
+    end
+
+    %% -------------------------------------------------------------
+    %% THE ENGINE (INPUT TO OUTPUT)
+    %% -------------------------------------------------------------
+    subgraph ENGINE ["Inside a Single GCN Layer (The Mathematical Pipeline)"]
+        INPUTS["1. RAW TOPOLOGICAL DATA<br>&bull; Node Features <span class='f-math'>X</span><br>&bull; Adjacency <span class='f-math'>A</span>"]:::process
+        
+        SELF_LOOP["2. ADD SELF-LOOPS<br><span class='f-math'>\\tilde{A} = A + I</span><br>Preserves node self-state during message passing"]:::process
+        
+        NORM["3. SYMMETRIC NORMALIZATION<br><span class='f-math'>\\tilde{D}^{-1/2} \\tilde{A} \\tilde{D}^{-1/2}</span><br>Scales down high-degree hub variance"]:::process
+        
+        AGG["4. NEIGHBORHOOD AGGREGATION<br><span class='f-math'>\\hat{A} H^{(l)}</span><br>Averages normalized local neighborhood"]:::process
+        
+        TRANSFORM["5. LINEAR PROJECTION<br><span class='f-math'>\\times W^{(l)}</span><br>Shared convolutional weight matrix"]:::process
+        
+        ACTIVATE["6. NON-LINEAR ACTIVATION<br><span class='f-math'>\\sigma(\\cdot) = \\text{ReLU}(\\cdot)</span><br>Maps to non-linear manifold"]:::process
+        
+        OUTPUT["7. EVOLVED NODE STATES<br><span class='f-math'>H^{(l+1)}</span><br>Richer topological understanding"]:::process
+
+        INPUTS --> SELF_LOOP
+        SELF_LOOP --> NORM
+        NORM --> AGG
+        AGG --> TRANSFORM
+        TRANSFORM --> ACTIVATE
+        ACTIVATE --> OUTPUT
+    end
+
+    %% -------------------------------------------------------------
+    %% THE GRAND MATHEMATICAL EQUATION
+    %% -------------------------------------------------------------
+    subgraph FORMULA ["The Ultimate GCN Formula"]
+        MATH_EQ["GCN Spectral Layer Equation:<br><span class='f-math'>H^{(l+1)} = \\sigma(\\tilde{D}^{-1/2} \\tilde{A} \\tilde{D}^{-1/2} H^{(l)} W^{(l)})</span>"]:::formula
+        
+        %% Mapping lines to the formula components
+        ACTIVATE -.->|"Activation <span class='f-math'>\\sigma</span>"| MATH_EQ
+        NORM -.->|"Normalization <span class='f-math'>\\tilde{D}^{-1/2}</span>"| MATH_EQ
+        SELF_LOOP -.->|"Self-Loops <span class='f-math'>\\tilde{A}</span>"| MATH_EQ
+        INPUTS -.->|"State <span class='f-math'>H^{(l)}</span>"| MATH_EQ
+        TRANSFORM -.->|"Weights <span class='f-math'>W^{(l)}</span>"| MATH_EQ
+    end
+
+    FUSE_OP --> INPUTS
+    OUTPUT -->|"Stack multiple layers to see further<br>(Layer 2 = Neighbor's Neighbors)"| INPUTS
+
+    style INSPIRATION fill:#f9f9f9,stroke:#999,stroke-dasharray: 5 5;
+    style FUSION fill:#f5f5f5,stroke:#666;
+    style ENGINE fill:#fff,stroke:#333;
+    style FORMULA fill:#fffbe6,stroke:#ffc53d;
+      </div>
+
+      <h4>Deconstructing Each Component in the GCN Pipeline:</h4>
+      <ul>
+        <li><strong>Why Add Self-Loops ($\tilde{A} = A + I$):</strong> Standard adjacency $A$ has zeros along its main diagonal. Multiplying $A H$ aggregates strictly neighbor signals, causing each node to completely discard its own existing state. Adding $I$ ensures the node's prior representation is retained.</li>
+        <li><strong>Why Symmetric Normalization ($\tilde{D}^{-1/2} \tilde{A} \tilde{D}^{-1/2}$):</strong> Simple row averaging ($\tilde{D}^{-1} \tilde{A}$) normalizes for the receiver's degree, but ignores the sender's degree. Symmetric normalization scales each edge by $\frac{1}{\sqrt{\tilde{d}_i \tilde{d}_j}}$, bounding the spectral radius and preventing numerical instability across multi-layer cascades.</li>
+        <li><strong>Why Shared Weights ($W^{(l)}$):</strong> Borrowing directly from CNNs, the parameter matrix $W$ is shared across all vertices regardless of position or degree, ensuring parameter count remains constant irrespective of graph order $N$.</li>
+        <li><strong>Why Activation Function ($\sigma$):</strong> Stacking linear layers without non-linearities collapses $K$ layers into a single matrix product $\tilde{A}^K H W_1 \dots W_K$. The activation allows the model to learn non-linear manifold structures.</li>
+      </ul>
+
+      <!-- GRAPHSAGE -->
+      <h3>2. GraphSAGE - Hamilton, Ying, &amp; Leskovec (NeurIPS 2017)</h3>
+      <p>
+        Full-graph GCN requires the entire adjacency matrix in memory and cannot generalize to unseen nodes (transductive limitation).
+
+        GraphSAGE resolved this by introducing fixed-size uniform neighborhood sampling and explicit concatenation with self-features.
+      </p>
+
+      <div class="mermaid">
+graph TD
+    classDef core fill:#2ca02c,stroke:#333,stroke-width:2px,color:#fff;
+    classDef process fill:#e377c2,stroke:#333,stroke-width:1px,color:#fff;
+    classDef formula fill:#ff7f0e,stroke:#333,stroke-width:2px,color:#fff;
+    classDef concept fill:#9467bd,stroke:#333,stroke-width:1px,color:#fff;
+
+    subgraph SAGE_PROB ["The Transductive Bottleneck"]
+        P1["Full-graph GCN requires all adjacency in GPU memory"]:::concept
+        P2["Cannot generalize to unseen nodes at test time"]:::concept
+        SOL["GraphSAGE Solution (Hamilton et al., 2017):<br>Uniform Neighborhood Sampling + Separate Self Concatenation"]:::core
+        P1 --> SOL
+        P2 --> SOL
+    end
+
+    subgraph SAGE_ENGINE ["Inside a GraphSAGE Layer"]
+        S_IN["1. Node Features <span class='f-math'>h_v</span> and sampled <span class='f-math'>\\mathcal{N}_s(v)</span>"]:::process
+        S_SAMPLE["2. Bounded Sampling: Fix size <span class='f-math'>S_k</span><br>Guarantees fixed memory footprint per batch"]:::process
+        S_AGG["3. Neighborhood Aggregation: Mean / Pool / LSTM<br><span class='f-math'>h_{\\mathcal{N}(v)}^{(k)} = \\text{AGG}(\\{h_u^{(k-1)} : u \\in \\mathcal{N}_s(v)\\})</span>"]:::process
+        S_CAT["4. Explicit Concatenation with Self State<br><span class='f-math'>[ h_v^{(k-1)} \\,\\|\\, h_{\\mathcal{N}(v)}^{(k)} ]</span>"]:::process
+        S_PROJ["5. Linear Projection and Activation<br><span class='f-math'>h_v^{(k)} = \\sigma( W^{(k)} [ h_v^{(k-1)} \\,\\|\\, h_{\\mathcal{N}(v)}^{(k)} ] )</span>"]:::process
+        S_NORM["6. L2 Unit Sphere Normalization<br><span class='f-math'>h_v^{(k)} \\leftarrow h_v^{(k)} \\;/\\; \\|h_v^{(k)}\\|_2</span>"]:::process
+
+        S_IN --> S_SAMPLE --> S_AGG --> S_CAT --> S_PROJ --> S_NORM
+    end
+
+    subgraph SAGE_FORMULA ["GraphSAGE Equation"]
+        EQ_SAGE["GraphSAGE Equation:<br><span class='f-math'>h_v^{(k)} = \\sigma( W^{(k)} [ h_v^{(k-1)} \\,\\|\\, \\text{AGG}(\\{ h_u^{(k-1)} : u \\in \\mathcal{N}_s(v) \\}) ] )</span>"]:::formula
+    end
+
+    SOL --> S_IN
+    S_NORM -.-> EQ_SAGE
+
+    style SAGE_PROB fill:#f5f5f5,stroke:#666;
+    style SAGE_ENGINE fill:#fff,stroke:#333;
+    style SAGE_FORMULA fill:#fffbe6,stroke:#ffc53d;
+      </div>
+
+      <h4>Deconstructing GraphSAGE Innovations:</h4>
+      <ul>
+        <li><strong>Uniform Neighborhood Sampling:</strong> Instead of summing over all neighbors, GraphSAGE randomly samples a fixed number $S_k$ (e.g., $S_1 = 25, S_2 = 10$) of neighbors per node, enabling mini-batch training on arbitrary scale graphs.</li>
+        <li><strong>Decoupled Self-Connection ($[h_v \,\|\, h_{\mathcal{N}(v)}]$):</strong> GCN forces self-features and neighbor features through the identical weight matrix simultaneously via $A + I$. GraphSAGE explicitly concatenates them, allowing the model to independently weigh self-identity versus contextual influence.</li>
+      </ul>
+
+      <!-- GAT -->
+      <h3>3. Graph Attention Networks (GAT) - Veličković et al. (ICLR 2018)</h3>
+      <p>
+        Both GCN and GraphSAGE assign edge weights fixed entirely by graph topology.
+
+        Graph Attention Networks introduced dynamic parameterized self-attention, enabling nodes to prioritize neighbors based on their feature values.
+      </p>
+
+      <div class="mermaid">
+graph TD
+    classDef core fill:#2ca02c,stroke:#333,stroke-width:2px,color:#fff;
+    classDef process fill:#e377c2,stroke:#333,stroke-width:1px,color:#fff;
+    classDef formula fill:#ff7f0e,stroke:#333,stroke-width:2px,color:#fff;
+    classDef concept fill:#9467bd,stroke:#333,stroke-width:1px,color:#fff;
+
+    subgraph GAT_PROB ["The Static Weighting Flaw"]
+        GP1["GCN and GraphSAGE assign fixed weights based purely on topology"]:::concept
+        GP2["Cannot prioritize critical edges based on node feature signals"]:::concept
+        GSOL["GAT Solution (Veličković et al., 2018):<br>Parametric Self-Attention over Local Neighborhoods"]:::core
+        GP1 --> GSOL
+        GP2 --> GSOL
+    end
+
+    subgraph GAT_ENGINE ["Inside a GAT Layer (Single Head)"]
+        G_IN["1. Input Node Representations: <span class='f-math'>h_i, h_j</span>"]:::process
+        G_PROJ["2. Linear Projection: <span class='f-math'>z_i = W h_i, \\; z_j = W h_j</span>"]:::process
+        G_SCORE["3. Attention Scoring:<br><span class='f-math'>e_{ij} = \\text{LeakyReLU}(\\mathbf{a}^T [W h_i \\,\\|\\, W h_j])</span>"]:::process
+        G_SOFT["4. Softmax Normalization across Neighborhood N(i):<br><span class='f-math'>\\alpha_{ij} = \\exp(e_{ij}) \\;/\\; \\sum_{k \\in \\mathcal{N}(i)} \\exp(e_{ik})</span>"]:::process
+        G_AGG["5. Attention-Weighted Feature Combination:<br><span class='f-math'>h_i^{(l+1)} = \\sigma\\left(\\sum_{j \\in \\mathcal{N}(i)} \\alpha_{ij} W h_j\\right)</span>"]:::process
+        G_MHEAD["6. Multi-Head Stacking: Concatenate K attention heads<br><span class='f-math'>h_i^{(l+1)} = \\|_{k=1}^K \\sigma\\left(\\sum_{j \\in \\mathcal{N}(i)} \\alpha_{ij}^k W^k h_j\\right)</span>"]:::process
+
+        G_IN --> G_PROJ --> G_SCORE --> G_SOFT --> G_AGG --> G_MHEAD
+    end
+
+    subgraph GAT_FORMULA ["GAT Attention Equations"]
+        EQ_GAT["GAT Attention Equations:<br><span class='f-math'>\\alpha_{ij} = \\text{Softmax}_j(\\text{LeakyReLU}(\\mathbf{a}^T [W h_i \\,\\|\\, W h_j]))</span><br><span class='f-math'>h_i^{(l+1)} = \\sigma\\left(\\sum_{j \\in \\mathcal{N}(i)} \\alpha_{ij} W h_j\\right)</span>"]:::formula
+    end
+
+    GSOL --> G_IN
+    G_MHEAD -.-> EQ_GAT
+
+    style GAT_PROB fill:#f5f5f5,stroke:#666;
+    style GAT_ENGINE fill:#fff,stroke:#333;
+    style GAT_FORMULA fill:#fffbe6,stroke:#ffc53d;
+      </div>
+
+      <!-- GRAPHGPS -->
+      <h3>4. GraphGPS - Rampášek et al. (NeurIPS 2022)</h3>
+      <p>
+        Standard MPNNs suffer from over-smoothing (representations collapsing to uniform averages) and over-squashing (exponential information compressed into fixed vectors).
+
+        GraphGPS resolves this by decoupling local message passing from global multi-head attention within every single layer.
+      </p>
+
+      <div class="mermaid">
+graph TD
+    classDef core fill:#2ca02c,stroke:#333,stroke-width:2px,color:#fff;
+    classDef process fill:#e377c2,stroke:#333,stroke-width:1px,color:#fff;
+    classDef formula fill:#ff7f0e,stroke:#333,stroke-width:2px,color:#fff;
+    classDef concept fill:#9467bd,stroke:#333,stroke-width:1px,color:#fff;
+
+    subgraph GPS_PROB ["Over-Smoothing and Over-Squashing Bottlenecks"]
+        BP1["Deep MPNNs collapse all nodes to average (Over-smoothing)"]:::concept
+        BP2["Information from distant nodes is exponentially compressed (Over-squashing)"]:::concept
+        GPS_SOL["GraphGPS Solution (Rampášek et al., 2022):<br>Hybrid Architecture = Local MPNN + Global Attention + LapPE"]:::core
+        BP1 --> GPS_SOL
+        BP2 --> GPS_SOL
+    end
+
+    subgraph GPS_ENGINE ["Inside a GraphGPS Layer"]
+        GP_IN["1. Node Features <span class='f-math'>X</span> and Positional Encodings (LapPE)"]:::process
+        GP_PE["2. Positional Encoding: Eigenvectors of <span class='f-math'>L</span> provide coordinates"]:::process
+        GP_SPLIT["3. Dual-Stream Information Routing"]:::process
+        GP_LOCAL["Local Stream: Standard MPNN (e.g. GCN/GINE)<br>Preserves local edge inductive bias"]:::process
+        GP_GLOBAL["Global Stream: Full Multi-Head Self-Attention<br>Direct <span class='f-math'>\\mathcal{O}(1)</span> routing between all node pairs"]:::process
+        GP_FUSE["4. Feature Fusion: Local + Global Streams combined"]:::process
+        GP_FFN["5. Feed-Forward Network (MLP) + LayerNorm + Residuals"]:::process
+
+        GP_IN --> GP_PE --> GP_SPLIT
+        GP_SPLIT --> GP_LOCAL --> GP_FUSE
+        GP_SPLIT --> GP_GLOBAL --> GP_FUSE
+        GP_FUSE --> GP_FFN
+    end
+
+    subgraph GPS_FORMULA ["GraphGPS Equation"]
+        EQ_GPS["GraphGPS Layer Equation:<br><span class='f-math'>h_v^{(l+1)} = \\text{MLP}( \\text{MPNN}(h_v^{(l)}) + \\text{GlobalAttn}(h_v^{(l)}) ) + h_v^{(l)}</span>"]:::formula
+    end
+
+    GPS_SOL --> GP_IN
+    GP_FFN -.-> EQ_GPS
+
+    style GPS_PROB fill:#f5f5f5,stroke:#666;
+    style GPS_ENGINE fill:#fff,stroke:#333;
+    style GPS_FORMULA fill:#fffbe6,stroke:#ffc53d;
+      </div>
+    </section>
+
+    <!-- SECTION 7 -->
+    <section id="interactive-sim">
+      <h2>7. Interactive Step-by-Step Multi-Architecture Simulator</h2>
+      <p>
+        An interactive discrete propagation engine across 5 nodes.
+
+        Toggle between architectural paradigms below to inspect how propagation dynamics, convergence rates, and representation states evolve from step $k=0$ to $k=10$.
+      </p>
+
+      <div class="sim-mode-group">
+        <button class="btn-sm active" id="sim-mode-diff" onclick="setSimMode('diffusion')">1. Pure Heat Diffusion</button>
+        <button class="btn-sm" id="sim-mode-gcn" onclick="setSimMode('gcn')">2. GCN (Symmetric Norm)</button>
+        <button class="btn-sm" id="sim-mode-sage" onclick="setSimMode('sage')">3. GraphSAGE (Mean + Self)</button>
+        <button class="btn-sm" id="sim-mode-gat" onclick="setSimMode('gat')">4. GAT (Attention Weighted)</button>
+        <button class="btn-sm" id="sim-mode-gps" onclick="setSimMode('gps')">5. GraphGPS (Local + Global)</button>
+      </div>
+
+      <div class="interactive-container">
+        <div class="sim-layout">
+          <canvas id="graphCanvas" class="sim-canvas" width="460" height="320" aria-label="Interactive 5-node diffusion canvas"></canvas>
+
+          <div class="sim-controls-pane">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong>Propagation Step ($k$): </strong>
+                <span id="iterLabel" style="font-weight: 700; font-family: var(--font-mono); font-size: 1.2rem; color: var(--accent-primary);">0</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">(Max 10)</span>
+              </div>
+              <span id="simModeBadge" class="badge badge-primary">Pure Heat Diffusion</span>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <button class="btn" id="stepBtn">Execute 1 Layer</button>
+              <button class="btn btn-secondary" id="step10Btn">Run to k=10</button>
+              <button class="btn btn-secondary" id="resetBtn">Reset</button>
+            </div>
+
+            <div class="sim-step-log" id="simStepLog">
+              <strong>Step Reasoning &amp; Optimality Analysis:</strong>
+              <div id="simLogContent">Initial state ($k=0$). Node $v_0$ carries initial charge 10.0; all other nodes hold 0.0. Click 'Execute 1 Layer' to begin discrete propagation.</div>
+            </div>
+
+            <table style="margin-top: 0.75rem;">
+              <thead>
+                <tr>
+                  <th>Node</th>
+                  <th>Deg</th>
+                  <th>$h^{(0)}$</th>
+                  <th>$h^{(k)}$</th>
+                </tr>
+              </thead>
+              <tbody id="stateTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="intuition-box" style="margin-top: 1.25rem;">
+        <h4>What is Optimality for Such a Graph?</h4>
+        <p>
+          In pure diffusion physics, <strong>optimality</strong> is thermodynamic harmonic equilibrium where $(L x)_i = 0$ for all nodes.
+
+          Because total mass is conserved ($10.0$ units across $5$ nodes), the equilibrium steady state is reached when every node holds exactly $10.0 / 5 = 2.00$ units.
+        </p>
+
+        <p>
+          In Graph Neural Networks, however, uniform equilibrium is pathological: it is known as <strong>over-smoothing</strong>.
+
+          For learning tasks, the optimal layer depth ($k^*$) occurs when each node's receptive field has expanded to cover sufficient structural context (the graph diameter, typically $k=2$ or $3$), before features collapse into indistinguishable averages.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION 8 -->
+    <section id="bottlenecks">
+      <h2>8. Theoretical Expressive Power &amp; 1-WL Upper Bound</h2>
+
+      <h3>The 1-Weisfeiler-Lehman (1-WL) Graph Isomorphism Test</h3>
+      <p>
+        The 1-WL test (Weisfeiler &amp; Lehman, 1968) is a classical combinatorial algorithm that determines whether two graphs are topologically identical (isomorphic) through color refinement.
+      </p>
+
+      <div class="mermaid">
+graph TD
+    classDef process fill:#e377c2,stroke:#333,stroke-width:1px,color:#fff;
+    classDef core fill:#2ca02c,stroke:#333,stroke-width:2px,color:#fff;
+    classDef decision fill:#ff7f0e,stroke:#333,stroke-width:2px,color:#fff;
+
+    WL_START["1. INITIALIZATION<br>Starting colors: <span class='f-math'>c_v^{(0)} = 1</span>"]:::process
+    WL_MULTI["2. MULTISET GATHERING<br>Neighbor color multiset:<br><span class='f-math'>M_v^{(t)} = \\{\\!\\{ c_u^{(t)} : u \\in \\mathcal{N}(v) \\}\\!\\}</span>"]:::process
+    WL_HASH["3. INJECTIVE HASHING<br>Injective state refinement:<br><span class='f-math'>c_v^{(t+1)} = \\text{HASH}( c_v^{(t)}, M_v^{(t)} )</span>"]:::core
+    WL_CHECK{"4. STABILIZATION CHECK<br>Has the partition of color classes changed from step t to t+1?"}:::decision
+    WL_STOP["5. TERMINATION<br>Color histogram is stable.<br>Compare histogram with second graph.<br>Different histograms &rArr; Non-isomorphic.<br>Identical histograms &rArr; Inconclusive."]:::process
+
+    WL_START --> WL_MULTI
+    WL_MULTI --> WL_HASH
+    WL_HASH --> WL_CHECK
+    WL_CHECK -- "Yes (Colors Refined)" --> WL_MULTI
+    WL_CHECK -- "No (Partition Stable)" --> WL_STOP
+      </div>
+
+      <h3>Comparison: 1-WL Test vs Message Passing Neural Networks (MPNN)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>1-Weisfeiler-Lehman Test (1-WL)</th>
+            <th>Message Passing Neural Network (MPNN)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>State Representation</strong></td>
+            <td>Discrete integer color labels: $c_v \in \mathbb{N}$.</td>
+            <td>Continuous latent vectors: $h_v \in \mathbb{R}^D$.</td>
+          </tr>
+          <tr>
+            <td><strong>Aggregation Mechanism</strong></td>
+            <td>Injective hash function over multiset of integer colors.</td>
+            <td>Continuous neural aggregation: $\bigoplus_{u \in \mathcal{N}(v)} \text{MSG}(h_u)$.</td>
+          </tr>
+          <tr>
+            <td><strong>Theoretical Bound</strong></td>
+            <td>The benchmark baseline for color refinement.</td>
+            <td><strong>At most as powerful as 1-WL</strong> (Morris et al., 2019; Xu et al., 2019).</td>
+          </tr>
+          <tr>
+            <td><strong>Known Failure Cases</strong></td>
+            <td>Cannot distinguish strongly regular graphs with identical spectra; cannot count triangles.</td>
+            <td>Inherits the exact same topological blindness: fails to distinguish regular graphs with identical degrees.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Why Standard MPNNs Cannot Exceed 1-WL</h3>
+      <p>
+        Xu et al. (2019) proved that an MPNN can achieve at most the expressive power of 1-WL if and only if its message aggregation and update functions are strictly <strong>injective</strong>.
+
+        If two graphs produce the exact same color histogram in the 1-WL test, no standard message-passing neural network can distinguish them, regardless of parameter tuning or layer depth.
+      </p>
+
+      <p>
+        The Graph Isomorphism Network (GIN) achieves this theoretical ceiling by utilizing an injective multiset sum aggregator:
+      </p>
+      $$h_v^{(k)} = \text{MLP}^{(k)} \left( \left(1 + \epsilon^{(k)}\right) h_v^{(k-1)} + \sum_{u \in \mathcal{N}(v)} h_u^{(k-1)} \right)$$
+
+      <h3>Pathologies of Deep Propagation</h3>
+      <div class="math-card" style="margin-top: 1rem;">
+        <div class="math-card-header">
+          <span>Key Bottlenecks in Deep Graph Propagation</span>
+          <span>Theoretical Limits</span>
+        </div>
+        <div class="math-step-list">
+          <div class="math-step-row">
+            <div class="math-step-formula">$$\lim_{L \to \infty} h_u^{(L)} = h_v^{(L)} \quad \forall u, v \in V$$</div>
+            <div class="math-step-desc"><strong>Over-Smoothing:</strong> Stacking many layers acts as a continuous low-pass filter, collapsing all vertex representations toward a single uniform equilibrium.</div>
+          </div>
+          <div class="math-step-row">
+            <div class="math-step-formula">$$\text{Receptive Field} \propto d^L \implies \text{Bottleneck}$$</div>
+            <div class="math-step-desc"><strong>Over-Squashing:</strong> An exponentially growing neighborhood of information ($d^L$ nodes) is forced into a fixed-width vector $h_v$.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 9 -->
+    <section id="scratch-python">
+      <h2>9. NumPy Engines from Scratch (Pure Python)</h2>
+      <p>
+        Self-contained, mathematically rigorous implementations of all 5 architectures built entirely from scratch in NumPy without external deep learning frameworks.
+      </p>
+
+      <h3>1. Simple Message-Passing GNN (Mean Aggregator)</h3>
+      <pre><code><span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> <span class="tok-bi">np</span>
+
+<span class="tok-kw">def</span> <span class="tok-fn">relu</span>(x):
+    <span class="tok-kw">return</span> np.<span class="tok-fn">maximum</span>(<span class="tok-num">0</span>, x)
+
+<span class="tok-cm"># 1. Topology (4 nodes) and Features (N=4, F=2)</span>
+A <span class="tok-op">=</span> np.<span class="tok-fn">array</span>([[<span class="tok-num">0</span>,<span class="tok-num">1</span>,<span class="tok-num">0</span>,<span class="tok-num">0</span>], [<span class="tok-num">1</span>,<span class="tok-num">0</span>,<span class="tok-num">1</span>,<span class="tok-num">1</span>], [<span class="tok-num">0</span>,<span class="tok-num">1</span>,<span class="tok-num">0</span>,<span class="tok-num">1</span>], [<span class="tok-num">0</span>,<span class="tok-num">1</span>,<span class="tok-num">1</span>,<span class="tok-num">0</span>]], dtype=np.float32)
+H <span class="tok-op">=</span> np.<span class="tok-fn">array</span>([[<span class="tok-num">1.0</span>, <span class="tok-num">0.0</span>], [<span class="tok-num">0.5</span>, <span class="tok-num">0.5</span>], [<span class="tok-num">0.0</span>, <span class="tok-num">1.0</span>], [<span class="tok-num">1.0</span>, <span class="tok-num">1.0</span>]], dtype=np.float32)
+
+<span class="tok-cm"># 2. Row-normalized adjacency: A_mean = D^(-1) @ A</span>
+deg <span class="tok-op">=</span> np.<span class="tok-fn">sum</span>(A, axis=<span class="tok-num">1</span>, keepdims=<span class="tok-kw">True</span>)
+A_mean <span class="tok-op">=</span> A <span class="tok-op">/</span> deg
+
+<span class="tok-cm"># 3. Forward pass: Mean aggregation followed by linear projection</span>
+W_gnn <span class="tok-op">=</span> np.<span class="tok-fn">array</span>([[<span class="tok-num">0.5</span>, -<span class="tok-num">0.2</span>], [<span class="tok-num">0.1</span>, <span class="tok-num">0.8</span>]], dtype=np.float32)
+H_gnn <span class="tok-op">=</span> <span class="tok-fn">relu</span>(A_mean <span class="tok-op">@</span> H <span class="tok-op">@</span> W_gnn)
+<span class="tok-fn">print</span>(<span class="tok-str">"Simple GNN Layer Output:\n"</span>, np.<span class="tok-fn">round</span>(H_gnn, <span class="tok-num">3</span>))</code></pre>
+
+      <h3>2. Graph Convolutional Network (GCN) - Kipf &amp; Welling</h3>
+      <pre><code><span class="tok-cm"># 1. Add self-loops: A_tilde = A + I</span>
+N <span class="tok-op">=</span> A.shape[<span class="tok-num">0</span>]
+A_tilde <span class="tok-op">=</span> A <span class="tok-op">+</span> np.<span class="tok-fn">eye</span>(N)
+
+<span class="tok-cm"># 2. Symmetric normalization: D_tilde^(-1/2) @ A_tilde @ D_tilde^(-1/2)</span>
+d_tilde <span class="tok-op">=</span> np.<span class="tok-fn">sum</span>(A_tilde, axis=<span class="tok-num">1</span>)
+D_inv_sqrt <span class="tok-op">=</span> np.<span class="tok-fn">diag</span>(<span class="tok-num">1.0</span> <span class="tok-op">/</span> np.<span class="tok-fn">sqrt</span>(d_tilde))
+A_hat <span class="tok-op">=</span> D_inv_sqrt <span class="tok-op">@</span> A_tilde <span class="tok-op">@</span> D_inv_sqrt
+
+<span class="tok-cm"># 3. Forward pass: H^(l+1) = ReLU( A_hat @ H @ W )</span>
+W_gcn <span class="tok-op">=</span> np.<span class="tok-fn">array</span>([[<span class="tok-num">0.5</span>, -<span class="tok-num">0.2</span>], [<span class="tok-num">0.1</span>, <span class="tok-num">0.8</span>]], dtype=np.float32)
+H_gcn <span class="tok-op">=</span> <span class="tok-fn">relu</span>(A_hat <span class="tok-op">@</span> H <span class="tok-op">@</span> W_gcn)
+<span class="tok-fn">print</span>(<span class="tok-str">"GCN Layer Output:\n"</span>, np.<span class="tok-fn">round</span>(H_gcn, <span class="tok-num">3</span>))</code></pre>
+
+      <h3>3. GraphSAGE (Sample &amp; Aggregate with Self Concatenation)</h3>
+      <pre><code><span class="tok-cm"># 1. Neighbor Mean Aggregation</span>
+H_neighbors <span class="tok-op">=</span> A_mean <span class="tok-op">@</span> H
+
+<span class="tok-cm"># 2. Explicit Concatenation of Self-Features with Aggregated Neighbors</span>
+H_sage_cat <span class="tok-op">=</span> np.<span class="tok-fn">concatenate</span>([H, H_neighbors], axis=<span class="tok-num">1</span>)  <span class="tok-cm"># Shape: [N, 4]</span>
+
+<span class="tok-cm"># 3. Linear Projection over concatenated representation</span>
+W_sage <span class="tok-op">=</span> np.<span class="tok-fn">random</span>.<span class="tok-fn">randn</span>(<span class="tok-num">4</span>, <span class="tok-num">2</span>).<span class="tok-fn">astype</span>(np.float32) <span class="tok-op">*</span> <span class="tok-num">0.5</span>
+H_sage <span class="tok-op">=</span> <span class="tok-fn">relu</span>(H_sage_cat <span class="tok-op">@</span> W_sage)
+<span class="tok-fn">print</span>(<span class="tok-str">"GraphSAGE Layer Output:\n"</span>, np.<span class="tok-fn">round</span>(H_sage, <span class="tok-num">3</span>))</code></pre>
+
+      <h3>4. Graph Attention Network (GAT) with Parametric Attention</h3>
+      <pre><code><span class="tok-cm"># 1. Linear Projection: Z = H @ W</span>
+W_gat <span class="tok-op">=</span> np.<span class="tok-fn">eye</span>(<span class="tok-num">2</span>, dtype=np.float32)
+Z <span class="tok-op">=</span> H <span class="tok-op">@</span> W_gat
+
+<span class="tok-cm"># 2. Attention scoring vector: a = [a_src || a_dst]</span>
+a_src <span class="tok-op">=</span> np.<span class="tok-fn">array</span>([<span class="tok-num">0.4</span>, <span class="tok-num">0.6</span>], dtype=np.float32)
+a_dst <span class="tok-op">=</span> np.<span class="tok-fn">array</span>([<span class="tok-num">0.5</span>, -<span class="tok-num">0.3</span>], dtype=np.float32)
+score_src <span class="tok-op">=</span> Z <span class="tok-op">@</span> a_src
+score_dst <span class="tok-op">=</span> Z <span class="tok-op">@</span> a_dst
+
+<span class="tok-cm"># 3. Pairwise LeakyReLU Attention Matrix</span>
+E <span class="tok-op">=</span> np.<span class="tok-fn">zeros</span>((N, N), dtype=np.float32)
+<span class="tok-kw">for</span> i <span class="tok-kw">in</span> <span class="tok-fn">range</span>(N):
+    <span class="tok-kw">for</span> j <span class="tok-kw">in</span> <span class="tok-fn">range</span>(N):
+        <span class="tok-kw">if</span> A[i, j] <span class="tok-op">==</span> <span class="tok-num">1</span> <span class="tok-kw">or</span> i <span class="tok-op">==</span> j:
+            raw <span class="tok-op">=</span> score_src[i] <span class="tok-op">+</span> score_dst[j]
+            E[i, j] <span class="tok-op">=</span> raw <span class="tok-kw">if</span> raw <span class="tok-op">&gt;</span> <span class="tok-num">0</span> <span class="tok-kw">else</span> <span class="tok-num">0.2</span> <span class="tok-op">*</span> raw
+        <span class="tok-kw">else</span>:
+            E[i, j] <span class="tok-op">=</span> -<span class="tok-num">1e9</span>  <span class="tok-cm"># Mask out non-edges</span>
+
+<span class="tok-cm"># 4. Neighborhood Softmax Normalization</span>
+exp_E <span class="tok-op">=</span> np.<span class="tok-fn">exp</span>(E <span class="tok-op">-</span> np.<span class="tok-fn">max</span>(E, axis=<span class="tok-num">1</span>, keepdims=<span class="tok-kw">True</span>))
+exp_E[A <span class="tok-op">+</span> np.<span class="tok-fn">eye</span>(N) <span class="tok-op">==</span> <span class="tok-num">0</span>] <span class="tok-op">=</span> <span class="tok-num">0</span>
+Alpha <span class="tok-op">=</span> exp_E <span class="tok-op">/</span> np.<span class="tok-fn">sum</span>(exp_E, axis=<span class="tok-num">1</span>, keepdims=<span class="tok-kw">True</span>)
+
+<span class="tok-cm"># 5. Attention-Weighted Combination</span>
+H_gat <span class="tok-op">=</span> <span class="tok-fn">relu</span>(Alpha <span class="tok-op">@</span> Z)
+<span class="tok-fn">print</span>(<span class="tok-str">"GAT Attention Weights (Alpha):\n"</span>, np.<span class="tok-fn">round</span>(Alpha, <span class="tok-num">3</span>))
+<span class="tok-fn">print</span>(<span class="tok-str">"GAT Layer Output:\n"</span>, np.<span class="tok-fn">round</span>(H_gat, <span class="tok-num">3</span>))</code></pre>
+
+      <h3>5. GraphGPS (Local GCN + Global Attention + Laplacian Positional Encodings)</h3>
+      <pre><code><span class="tok-cm"># 1. Compute Laplacian Positional Encodings (LapPE)</span>
+L <span class="tok-op">=</span> np.<span class="tok-fn">diag</span>(np.<span class="tok-fn">sum</span>(A, axis=<span class="tok-num">1</span>)) <span class="tok-op">-</span> A
+eigvals, eigvecs <span class="tok-op">=</span> np.linalg.<span class="tok-fn">eigh</span>(L)
+LapPE <span class="tok-op">=</span> eigvecs[:, <span class="tok-num">1</span>:<span class="tok-num">3</span>]  <span class="tok-cm"># k=2 non-trivial eigenvectors</span>
+
+<span class="tok-cm"># 2. Enrich initial node features with positional encodings</span>
+H_gps_in <span class="tok-op">=</span> np.<span class="tok-fn">concatenate</span>([H, LapPE], axis=<span class="tok-num">1</span>)  <span class="tok-cm"># Shape: [N, 4]</span>
+
+<span class="tok-cm"># 3. Local Stream: Standard GCN over enriched features</span>
+W_local <span class="tok-op">=</span> np.<span class="tok-fn">ones</span>((<span class="tok-num">4</span>, <span class="tok-num">2</span>), dtype=np.float32) <span class="tok-op">*</span> <span class="tok-num">0.3</span>
+H_local <span class="tok-op">=</span> <span class="tok-fn">relu</span>(A_hat <span class="tok-op">@</span> H_gps_in <span class="tok-op">@</span> W_local)
+
+<span class="tok-cm"># 4. Global Stream: Multi-Head Global Self-Attention</span>
+Q <span class="tok-op">=</span> H_gps_in <span class="tok-op">@</span> np.<span class="tok-fn">eye</span>(<span class="tok-num">4</span>, <span class="tok-num">2</span>)
+K <span class="tok-op">=</span> H_gps_in <span class="tok-op">@</span> np.<span class="tok-fn">eye</span>(<span class="tok-num">4</span>, <span class="tok-num">2</span>)
+V <span class="tok-op">=</span> H_gps_in <span class="tok-op">@</span> np.<span class="tok-fn">eye</span>(<span class="tok-num">4</span>, <span class="tok-num">2</span>)
+Attn_global <span class="tok-op">=</span> np.<span class="tok-fn">exp</span>(Q <span class="tok-op">@</span> K.T <span class="tok-op">/</span> np.<span class="tok-fn">sqrt</span>(<span class="tok-num">2</span>))
+Attn_global <span class="tok-op">=</span> Attn_global <span class="tok-op">/</span> np.<span class="tok-fn">sum</span>(Attn_global, axis=<span class="tok-num">1</span>, keepdims=<span class="tok-kw">True</span>)
+H_global <span class="tok-op">=</span> Attn_global <span class="tok-op">@</span> V
+
+<span class="tok-cm"># 5. GraphGPS Fusion: Local stream + Global stream with residual connection</span>
+H_gps <span class="tok-op">=</span> <span class="tok-fn">relu</span>(H_local <span class="tok-op">+</span> H_global)
+<span class="tok-fn">print</span>(<span class="tok-str">"GraphGPS Layer Output:\n"</span>, np.<span class="tok-fn">round</span>(H_gps, <span class="tok-num">3</span>))</code></pre>
+    </section>
+
+    <!-- TRANSITION TO PART 2 -->
+    <div class="callout" style="margin-top: 3.5rem; border-left-color: var(--accent-primary);">
+      <h4>Part 1 Complete: Transitioning to Empirical Systems</h4>
+      <p style="margin-bottom: 0.75rem;">
+        Having established algebraic topology, Laplacian renormalization, and MPNN forward passes on foundational graphs, we now advance to empirical social networks, dynamic attention mechanisms, and real GPU training runs.
+      </p>
+      <a href="#bridge" class="btn" style="text-decoration: none; display: inline-block;">Continue to Part 2: Advanced Systems &rarr;</a>
+    </div>
+
+    <!-- PART 2 DIVIDER & HEADER -->
+    <div id="part-2-header" style="margin: 4.5rem 0 2rem; border-top: 2px dashed var(--border-card); padding-top: 2.5rem;">
+      <div class="page-banner" style="background-color: var(--accent-primary-bg); border-color: #f59e0b;">
+        <span class="banner-title" style="color: #78350f; font-weight: 700;">Part 2: Advanced Architectures &amp; Empirical Systems</span>
+        <a href="#why-gnns" class="banner-link">&larr; Return to Part 1: Foundations</a>
+      </div>
+
+      <header style="margin-top: 1.5rem;">
+        <h1>Part 2: Advanced GNN Architectures &amp; Empirical Systems</h1>
+        <div class="header-meta">
+          <span class="badge badge-primary">Empirical Verification</span>
+          <span class="badge">Hardware: NVIDIA GeForce RTX 5050 Laptop GPU</span>
+          <span class="badge">Framework: PyTorch Geometric (PyG)</span>
+          <span class="badge">Paradigms: GCN / GraphSAGE / GAT / GraphGPS / ST-GCN</span>
+        </div>
+        <p style="margin-top: 0.75rem; color: var(--text-muted);">
+          Building directly upon the first principles established in Part 1.
+          This document evaluates real-world topological benchmarks, inspects Kipf-Welling spectral renormalization with live cell derivations, demonstrates multi-paradigm message passing on Zachary's Karate Club, evaluates dynamic attention distributions on articulate hand skeletons, and verifies training curves on local hardware.
+        </p>
+      </header>
+    </div>
+
+    <!-- PART 2 SECTIONS (10 to 18) -->
+<section id="bridge">
+      <h2>10. Foundations Bridge: From Abstract Theory to Empirical Topologies</h2>
+      <p>
+        In <a href="#why-gnns" style="color: var(--accent-primary); font-weight: 600;">Part 1 (Foundations)</a>, we established the fundamental algebraic constraints of graph learning: permutation equivariance, unnormalized and symmetric graph Laplacians ($L$ and $L_{\text{sym}}$), the message passing framework (MPNN), and discrete diffusion across a 3-node path graph.
+      </p>
+
+      <p>
+        Moving from toy regular graphs to real-world social, physical, and biological networks introduces structural complexities that break naive message passing.
+      </p>
+
+      <p>
+        Real graphs exhibit heavy-tailed power-law degree distributions, community clustering, and long topological diameters.
+
+        To address these phenomena, graph machine learning evolved across distinct peer-reviewed paradigms:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Community Fission &amp; Social Topology (Zachary, 1977):</strong>
+          Wayne W. Zachary documented the social interaction network of 34 university karate club members over three years, observing its fission into two factions led by administrator John A. and instructor Mr. Hi.
+
+          This serves as the foundational empirical benchmark for node classification and community detection.
+        </li>
+        <li>
+          <strong>First-Order Spectral Normalization (Kipf &amp; Welling, 2017):</strong>
+          Introduced the localized first-order spectral convolution $H^{(l+1)} = \sigma(\tilde{D}^{-1/2} \tilde{A} \tilde{D}^{-1/2} H^{(l)} W^{(l)})$, resolving scale divergence on power-law degree distributions.
+        </li>
+        <li>
+          <strong>Inductive Mini-Batching &amp; Explicit Concatenation (Hamilton et al., 2017):</strong>
+          GraphSAGE decoupled graph representation from global transductive adjacency, using uniform neighborhood sampling and separate self-connection concatenation $[h_v \,\|\, h_{\mathcal{N}(v)}]$ to scale to massive web graphs.
+        </li>
+        <li>
+          <strong>Dynamic Parametric Self-Attention (Veličković et al., 2018):</strong>
+          Replaced static degree weights with feature-dependent self-attention coefficients $\alpha_{ij} = \text{Softmax}_j(\text{LeakyReLU}(\mathbf{a}^T [W h_i \,\|\, W h_j]))$, allowing models to emphasize task-critical neighbors.
+        </li>
+        <li>
+          <strong>Expressive Limits &amp; Weisfeiler-Lehman Equivalence (Xu et al., 2019; Morris et al., 2019):</strong>
+          Proved that standard MPNNs cannot exceed the 1-Weisfeiler-Lehman (1-WL) graph isomorphism test, and derived the Graph Isomorphism Network (GIN) with injective sum aggregation.
+        </li>
+        <li>
+          <strong>Hybrid Graph Transformers (Rampášek et al., 2022):</strong>
+          GraphGPS combined local MPNN convolutions with global multi-head self-attention and Laplacian Positional Encodings (LapPE), overcoming over-smoothing and over-squashing across long-range graph paths.
+        </li>
+      </ul>
+
+      <div class="callout" style="margin-top: 1.25rem;">
+        <h4>Foundational Literature Citations (Real Peer-Reviewed Benchmarks)</h4>
+        <ul style="font-size: 0.88rem; line-height: 1.6;">
+          <li>Zachary, W. W. (1977). "An Information Flow Model for Conflict and Fission in Small Groups." <em>Journal of Anthropological Research</em>, 33(4), 452-473.</li>
+          <li>Kipf, T. N., &amp; Welling, M. (2017). "Semi-Supervised Classification with Graph Convolutional Networks." <em>International Conference on Learning Representations (ICLR)</em>.</li>
+          <li>Hamilton, W. L., Ying, R., &amp; Leskovec, J. (2017). "Inductive Representation Learning on Large Graphs." <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, 1024-1034.</li>
+          <li>Veličković, P., Cucurull, G., Casanova, A., Romero, A., Liò, P., &amp; Bengio, Y. (2018). "Graph Attention Networks." <em>International Conference on Learning Representations (ICLR)</em>.</li>
+          <li>Xu, K., Hu, W., Leskovec, J., &amp; Jegelka, S. (2019). "How Powerful are Graph Neural Networks?" <em>International Conference on Learning Representations (ICLR)</em>.</li>
+          <li>Rampášek, L., Galkin, M., Dwivedi, V. P., Luu, A. T., Wolf, G., &amp; Beaini, D. (2022). "Recipe for a General, Powerful, Scalable Graph Transformer." <em>Advances in Neural Information Processing Systems (NeurIPS)</em>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION 2: KARATE CLUB -->
+    <section id="karate-club">
+      <h2>2. Zachary's Karate Club Topology Explorer</h2>
+      <p>
+        Zachary's Karate Club (Zachary, 1977) records the interpersonal friendships among $N=34$ members of a university karate club ($|E|=78$ undirected edges).
+
+        Following an administrative dispute, the club split into two distinct factions: Mr. Hi (Instructor, orange nodes) and the Officer (Administrator, blue nodes).
+      </p>
+
+      <div class="inquiry-box">
+        <strong>Mathematical Rationale: Why Local Mean Aggregation Is Used Here.</strong>
+        <p>
+          In Zachary's Karate Club, the node degree distribution is highly skewed: degrees range from $d=1$ (peripheral members 11 and 16) up to $d=16$ (Mr. Hi, node 0) and $d=17$ (Officer, node 33).
+        </p>
+        <p>
+          If raw Sum aggregation ($\sum_{u \in \mathcal{N}(v)} h_u$) were used, central hubs 0 and 33 would aggregate vectors with 17 times greater numerical magnitude than leaf members.
+
+          This creates severe gradient variance and causes all latent embeddings to collapse toward hub features.
+        </p>
+        <p>
+          Local Mean aggregation ($\bar{m}_v = \frac{1}{d_v} \sum_{u \in \mathcal{N}(v)} h_u$) normalizes for degree variance: each member computes the <em>average faction consensus</em> of their personal social acquaintances, giving peripheral members equal representation.
+        </p>
+      </div>
+
+      <div class="controls-group">
+        <button class="btn-sm active" id="btn-show-all" onclick="filterNeighborhood('all')">Full Network (34 Nodes)</button>
+        <button class="btn-sm" id="btn-show-target" onclick="filterNeighborhood('target')">Target Node Only</button>
+        <button class="btn-sm" id="btn-show-1hop" onclick="filterNeighborhood('1hop')">1-Hop Local Neighbors</button>
+        <button class="btn-sm" id="btn-show-2hop" onclick="filterNeighborhood('2hop')">2-Hop Receptive Field</button>
+        <button class="btn-sm" id="btn-simulate-mp" style="margin-left: auto; background-color: #fef3c7; border-color: #f59e0b; color: #78350f;" onclick="simulateMessagePassing()">
+          Simulate Message Passing Pulse
+        </button>
+      </div>
+
+      <div class="visualizer-layout">
+        <div class="canvas-wrapper zoomable-diagram">
+          <svg id="graph-svg" class="graph-canvas" viewBox="0 0 640 420" role="img" aria-label="Interactive Zachary Karate Club graph canvas"></svg>
+          <div class="graph-legend" aria-label="Graph node color legend">
+            <span><span class="legend-dot" style="background:#c2410c;"></span>Mr. Hi (Faction 0)</span>
+            <span><span class="legend-dot" style="background:#1d4ed8;"></span>Officer (Faction 1)</span>
+            <span><span class="legend-dot" style="background:#b45309;"></span>Selected Target</span>
+            <span><span class="legend-dot" style="background:#0284c7;"></span>1-Hop Neighbor</span>
+            <span><span class="legend-dot" style="background:#64748b;"></span>2-Hop Field</span>
+          </div>
+        </div>
+
+        <div class="inspector-pane">
+          <h4>Target Node Topology Inspector</h4>
+          <p style="font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--text-muted);">Click any node in the SVG canvas or matrix heatmap to inspect its connectivity.</p>
+
+          <table class="prop-table">
+            <tbody>
+              <tr><td>Node ID ($v$)</td><td id="insp-id">0</td></tr>
+              <tr><td>Faction</td><td id="insp-club">Mr. Hi</td></tr>
+              <tr><td>Degree ($d_v$)</td><td id="insp-deg">16</td></tr>
+              <tr><td>1-Hop Neighbors</td><td id="insp-neighbors">1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 17, 19, 21, 31</td></tr>
+              <tr><td>2-Hop Field</td><td id="insp-2hop">9, 14, 15, 18, 20, 22, 27, 28, 30, 32, 33</td></tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+            <strong>Local Mean Aggregation Formula:</strong>
+            <div id="insp-mpnn-formula" style="margin-top: 0.4rem; padding: 0.5rem; background-color: var(--bg-card-muted); border-radius: 4px;">
+              $$\bar{m}_0 = \frac{1}{16} \sum_{u \in \mathcal{N}(0)} h_u$$
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="metric-label">Graph Order ($N$)</div>
+          <div class="metric-value" id="val-num-nodes">34</div>
+          <div class="metric-sub">Total club vertices</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Edge Count ($|E|$)</div>
+          <div class="metric-value" id="val-num-edges">78</div>
+          <div class="metric-sub">Undirected interactions</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Max Degree</div>
+          <div class="metric-value" id="val-max-deg">17</div>
+          <div class="metric-sub">Node 33 (Officer)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Min Degree</div>
+          <div class="metric-value" id="val-min-deg">1</div>
+          <div class="metric-sub">Nodes 11, 16 (Peripheral)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Average Degree</div>
+          <div class="metric-value" id="val-avg-deg">4.59</div>
+          <div class="metric-sub">Edges per node</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Matrix Sparsity</div>
+          <div class="metric-value" id="val-sparsity">86.5%</div>
+          <div class="metric-sub">Zero entries</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: MATRIX MECHANICS & GCN -->
+    <section id="matrix-mechanics">
+      <h2>3. GCN &amp; Kipf-Welling Laplacian Renormalization on Karate Club</h2>
+      <p>
+        Here we apply Kipf and Welling's (2017) first-order spectral convolution directly to the $34 \times 34$ Zachary Karate Club adjacency matrix.
+
+        The symmetric normalized propagation operator is defined as:
+      </p>
+
+      <div class="display-math-block">$$\hat{A} = \tilde{D}^{-\frac{1}{2}} \tilde{A} \tilde{D}^{-\frac{1}{2}}, \quad \text{where } \tilde{A} = A + I_{34} \text{ and } \tilde{D}_{ii} = \sum_{j=1}^{34} \tilde{A}_{ij}$$</div>
+
+      <div class="mermaid">
+flowchart LR
+    A["Adjacency Matrix: <span class='f-math'>A \\in \\{0,1\\}^{34 \\times 34}</span>"] --> S["Add Identity: <span class='f-math'>\\tilde{A} = A + I_{34}</span>"]
+    S --> D["Degree Matrix: <span class='f-math'>\\tilde{D}_{ii} = \\sum_j \\tilde{A}_{ij}</span>"]
+    D --> InvSqrt["Inverse Roots: <span class='f-math'>\\tilde{D}^{-1/2}</span>"]
+    InvSqrt --> Symm["Renormalization:<br><span class='f-math'>\\hat{A} = \\tilde{D}^{-1/2} \\tilde{A} \\tilde{D}^{-1/2}</span>"]
+    Symm --> Conv["Spectral Layer:<br><span class='f-math'>H^{(l+1)} = \\sigma(\\hat{A} H^{(l)} W^{(l)})</span>"]
+      </div>
+
+      <p>
+        Hover your cursor over any cell $(u, v)$ in the $34 \times 34$ heatmap below to inspect its exact algebraic derivation:
+      </p>
+
+      <div class="controls-group">
+        <button class="btn-sm active" id="btn-mat-ahat" onclick="showMatrix('ahat')">Normalized Adjacency $\hat{A}$</button>
+        <button class="btn-sm" id="btn-mat-atilde" onclick="showMatrix('atilde')">Self-Loop Adjacency $\tilde{A}$</button>
+        <button class="btn-sm" id="btn-mat-a" onclick="showMatrix('a')">Binary Adjacency $A$</button>
+      </div>
+
+      <!-- Scrollbar-Free Matrix Heatmap & Derivation Layout -->
+      <div class="matrix-heatmap-layout">
+        <div class="matrix-canvas-card">
+          <div style="font-size: 0.78rem; font-family: var(--font-mono); font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem;">
+            Full 34&times;34 Adjacency Heatmap (Hover Cell)
+          </div>
+          <canvas id="matrix-canvas" width="340" height="340" aria-label="34 by 34 interactive adjacency matrix canvas"></canvas>
+          <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.72rem; font-family: var(--font-mono); color: var(--text-muted); margin-top: 0.4rem;">
+            <span>Row 0, Col 0</span>
+            <span>Row 33, Col 33</span>
+          </div>
+        </div>
+
+        <div class="matrix-derivation-side">
+          <div id="matrix-cell-inspector" class="cell-inspector-card">
+            <div class="cell-inspector-meta">
+              <span class="inspector-badge">Derivation Monitor</span>
+              <span class="cell-inspector-title" id="insp-cell-title">Hover any cell on the heatmap to view its algebraic derivation</span>
+            </div>
+            <div class="cell-inspector-math" id="insp-cell-formula">$$\hat{A}_{u,v} = \frac{\tilde{A}_{u,v}}{\sqrt{\tilde{D}_{uu} \tilde{D}_{vv}}}$$</div>
+          </div>
+
+          <!-- Target Neighborhood Submatrix Table -->
+          <div class="submatrix-card">
+            <div style="font-size: 0.8rem; font-family: var(--font-mono); font-weight: 600; color: var(--text-muted);">
+              Selected Target Node Connectivity Breakdown
+            </div>
+            <table class="submatrix-table">
+              <thead>
+                <tr>
+                  <th>Neighbor</th>
+                  <th>Faction</th>
+                  <th>Degree $d_v$</th>
+                  <th>$A_{u,v}$</th>
+                  <th>$\tilde{A}_{u,v}$</th>
+                  <th>$\hat{A}_{u,v}$</th>
+                </tr>
+              </thead>
+              <tbody id="submatrix-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: GRAPHSAGE ON KARATE CLUB -->
+    <section id="graphsage-karate">
+      <h2>4. GraphSAGE on Karate Club: Inductive Neighborhood Sampling &amp; Concatenation</h2>
+      <p>
+        When applying GraphSAGE (Hamilton et al., 2017) to Zachary's Karate Club, two core algorithmic mechanisms alter the representation:
+      </p>
+
+      <div class="mermaid">
+flowchart LR
+    Target["Hub Node: <span class='f-math'>v \\; (d_v=16)</span>"] --> Sample["Bounded Sampling: <span class='f-math'>S=4</span> Neighbors"]
+    Sample --> Aggr["Mean Aggregation:<br><span class='f-math'>h_{\\mathcal{N}(v)}^{(1)} = \\text{Mean}(\\{h_u^{(0)}\\})</span>"]
+    Aggr --> Concat["Concatenation:<br><span class='f-math'>[ h_v^{(0)} \\,\\|\\, h_{\\mathcal{N}(v)}^{(1)} ]</span>"]
+    Concat --> Dense["Weight Projection:<br><span class='f-math'>W^{(1)} [ h_v^{(0)} \\,\\|\\, h_{\\mathcal{N}(v)}^{(1)} ]</span>"]
+    Dense --> L2["L2 Normalization:<br><span class='f-math'>h_v \\leftarrow h_v \\;/\\; \\|h_v\\|_2</span>"]
+      </div>
+
+      <div class="math-card">
+        <div class="math-card-header">
+          <span>GraphSAGE Computational Mechanics on Karate Club</span>
+          <span>Hamilton et al. (2017)</span>
+        </div>
+        <div class="math-step-list">
+          <div class="math-step-row">
+            <div class="math-step-formula">$$h_{\mathcal{N}(v)}^{(1)} = \text{Mean}\left( \{ h_u^{(0)} : u \in \mathcal{N}_{\text{sample}}(v) \} \right), \quad |\mathcal{N}_{\text{sample}}| = 4$$</div>
+            <div class="math-step-desc">1. Bounded Neighborhood Sampling: For hub node 0 ($d=16$), sampling $S=4$ neighbors limits gradient variance and computational memory.</div>
+          </div>
+          <div class="math-step-row">
+            <div class="math-step-formula">$$h_v^{(1)} = \sigma\left( W^{(1)} \cdot \left[ h_v^{(0)} \,\|\, h_{\mathcal{N}(v)}^{(1)} \right] \right)$$</div>
+            <div class="math-step-desc">2. Explicit Self-Concatenation: Unlike GCN which blends self-state into the neighborhood sum via $A + I$, GraphSAGE preserves node 0's distinct instructor identity.</div>
+          </div>
+          <div class="math-step-row">
+            <div class="math-step-formula">$$h_v \leftarrow \frac{h_v}{\|h_v\|_2}$$</div>
+            <div class="math-step-desc">3. L2 Normalization: Embeddings are projected onto the unit sphere, preventing high-degree hubs from drifting outward in latent space.</div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        <strong>Inductive Generalization on Karate Club:</strong>
+        Suppose a new student joins the karate club and connects to members 1 and 2.
+
+        A transductive GCN cannot classify this new student without recomputing the entire $35 \times 35$ matrix $\hat{A}$ and retraining.
+
+        GraphSAGE aggregates the student's local sampled neighborhood using the frozen learned aggregation weights $W^{(1)}$, immediately predicting their faction.
+      </p>
+    </section>
+
+    <!-- SECTION 5: GAT ATTENTION -->
+    <section id="gat-attention">
+      <h2>5. Dynamic Self-Attention: GAT on Karate Club &amp; Hand Skeletons</h2>
+
+      <h3>Community Boundary Ambiguity in Karate Club</h3>
+      <p>
+        Consider boundary nodes such as node 8 or node 31.
+
+        Node 8 belongs to Mr. Hi's faction, but maintains direct edges to nodes 30, 32, and 33 (the Officer faction).
+
+        In standard GCN, edge weights are fixed strictly by degrees: $\hat{A}_{8, 33} = 1/\sqrt{\tilde{d}_8 \tilde{d}_{33}} = 1/\sqrt{6 \times 18} = 0.096$.
+
+        GCN cannot reduce this weight even if node 33 expresses an opposing faction signal.
+      </p>
+
+      <p>
+        Graph Attention Networks (Veličković et al., 2018) resolve this with parameterized self-attention:
+      </p>
+
+      <div class="display-math-block">$$\alpha_{ij} = \frac{\exp\left(\text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}h_i \,\|\, \mathbf{W}h_j]\right)\right)}{\sum_{k \in \mathcal{N}(i)} \exp\left(\text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}h_i \,\|\, \mathbf{W}h_k]\right)\right)}$$</div>
+
+      <div class="mermaid">
+flowchart LR
+    Feat["Node Features:<br><span class='f-math'>h_i, \\; h_j</span>"] --> Linear["Shared Projection:<br><span class='f-math'>W h_i, \\; W h_j</span>"]
+    Linear --> Concat["Concatenation:<br><span class='f-math'>[ W h_i \\,\\|\\, W h_j ]</span>"]
+    Concat --> AttnVec["Attention Vector:<br><span class='f-math'>\\mathbf{a}^T [ W h_i \\,\\|\\, W h_j ]</span>"]
+    AttnVec --> Act["Activation:<br><span class='f-math'>\\text{LeakyReLU}(\\cdot)</span>"]
+    Act --> Softmax["Softmax Coefficients:<br><span class='f-math'>\\alpha_{ij}</span>"]
+    Softmax --> Out["Message Aggregation:<br><span class='f-math'>\\sum_{j} \\alpha_{ij} W h_j</span>"]
+      </div>
+
+      <p>
+        GAT dynamically drives $\alpha_{8, 33} \to 0.05$ while elevating $\alpha_{8, 0} \to 0.45$, allowing boundary nodes to filter out cross-faction noise.
+      </p>
+
+      <h3>Real Experiment: Hand Skeleton GAT Attention Distribution (RTX 5050)</h3>
+      <p style="color: var(--text-muted);">
+        These are actual $\alpha_{ij}$ values from a trained GAT on 21-node hand skeleton graphs (MediaPipe keypoints) executed on an NVIDIA GeForce RTX 5050 Laptop GPU.
+
+        The hypothesis: fingertip nodes receive significantly higher attention than palm and wrist nodes because fingertips carry discriminative gesture articulation.
+      </p>
+
+      <div class="result-run-card">
+        <div class="run-header">
+          <span class="run-title">GAT Attention Distribution: Hand Skeleton Graph</span>
+          <span class="run-tag">cuda:0 · RTX 5050 Laptop GPU</span>
+        </div>
+        <div class="run-stats">
+          <span class="run-stat">Mean fingertip attention: <strong id="gat-fingertip-attn">0.419</strong></span>
+          <span class="run-stat">Mean palm/wrist attention: <strong id="gat-palm-attn">0.270</strong></span>
+          <span class="run-stat">Attention ratio: <strong id="gat-ratio">1.55x</strong></span>
+          <span class="run-stat">Hypothesis confirmed: <strong id="gat-confirmed" style="color: var(--accent-success);">Yes</strong></span>
+        </div>
+      </div>
+
+      <div id="gat-attention-loading" class="state-container state-loading">Loading attention weights...</div>
+      <div id="gat-attention-error" class="state-container state-error">Could not load attention data.</div>
+      <div class="attn-table-wrap" id="gat-attention-wrap">
+        <table class="attn-table" id="gat-attention-table">
+          <thead>
+            <tr>
+              <th>Source Joint</th>
+              <th>Target Joint</th>
+              <th>Category</th>
+              <th>$\alpha_{ij}$ Attention</th>
+              <th>Proportional Weight Bar</th>
+            </tr>
+          </thead>
+          <tbody id="gat-attention-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 6: GRAPH TRANSFORMERS & GPS -->
+    <section id="graph-gps">
+      <h2>6. Graph Transformers, GraphGPS &amp; k-WL Expressive Limits</h2>
+      <p>
+        In Part 1, we established that standard message passing is upper-bounded by the 1-Weisfeiler-Lehman (1-WL) test (Xu et al., 2019).
+
+        To distinguish higher-order subgraphs and resolve over-squashing, the field progressed to $k$-WL tests ($k \ge 3$) and Graph Transformers (Rampášek et al., 2022).
+      </p>
+
+      <div class="mermaid">
+flowchart TD
+    subgraph InputNode ["Karate Club Vertex <span class='f-math'>v</span>"]
+        X["Node Attributes:<br><span class='f-math'>x_v</span>"]
+        PE["LapPE Coordinates:<br>(Fiedler Vector <span class='f-math'>u_1</span>)"]
+    end
+    X & PE --> Embed["Linear Fusion:<br><span class='f-math'>h_v^{(0)}</span>"]
+    Embed --> LocalBranch["Local MPNN Stream:<br><span class='f-math'>\\text{GCNConv}(h_v, \\mathcal{N}(v))</span>"]
+    Embed --> GlobalBranch["Global Attention Stream:<br><span class='f-math'>\\text{MHA}(h_v, \\mathcal{V})</span>"]
+    LocalBranch & GlobalBranch --> Fusion["Dual-Stream Concatenation & MLP"]
+    Fusion --> Out["Updated Representation:<br><span class='f-math'>h_v^{(l+1)}</span>"]
+      </div>
+
+      <div class="math-card">
+        <div class="math-card-header">
+          <span>GraphGPS on Zachary's Karate Club</span>
+          <span>Rampášek et al. (2022)</span>
+        </div>
+        <div class="math-step-list">
+          <div class="math-step-row">
+            <div class="math-step-formula">$$L = U \Lambda U^T \implies \mathbf{p}_i = [u_{i,1}, u_{i,2}, u_{i,3}, u_{i,4}]^T$$</div>
+            <div class="math-step-desc">1. Laplacian Positional Encodings (LapPE): The first non-trivial eigenvector ($u_1$, the Fiedler vector) of the $34 \times 34$ Karate Club Laplacian naturally partitions Mr. Hi (negative values) and Officer (positive values).</div>
+          </div>
+          <div class="math-step-row">
+            <div class="math-step-formula">$$h_v^{\text{local}} = \text{GCNConv}(h_v^{(l)}, \mathcal{N}(v))$$</div>
+            <div class="math-step-desc">2. Local MPNN Stream: Convolutions along local edges preserve immediate community connectivity.</div>
+          </div>
+          <div class="math-step-row">
+            <div class="math-step-formula">$$h_v^{\text{global}} = \text{MultiHeadAttention}(h_v^{(l)}, V)$$</div>
+            <div class="math-step-desc">3. Global Transformer Stream: Provides direct $\mathcal{O}(1)$ information flow between distant vertices (e.g., node 0 and node 33), bypassing the 5-hop graph diameter.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: GCN EXPERIMENT -->
+    <section id="gcn-experiment">
+      <h2>7. Real Experiment: Static GCN Gesture Classification</h2>
+      <p>
+        2-layer GCNConv applied to 21-node MediaPipe hand skeleton graphs across 10 gesture classes (A through J).
+
+        Executed locally on an NVIDIA GeForce RTX 5050 Laptop GPU.
+      </p>
+
+      <div class="result-run-card" id="gcn-run-card">
+        <div class="run-header">
+          <span class="run-title">2-Layer GCNConv on Hand Skeleton Graphs (Classes A through J)</span>
+          <span class="run-tag" id="gcn-device-tag">cuda:0 · RTX 5050</span>
+        </div>
+        <div class="run-stats">
+          <span class="run-stat">Final test accuracy: <strong id="gcn-final-acc" style="color: var(--accent-success);">86.67%</strong></span>
+          <span class="run-stat">Train samples: <strong id="gcn-train-samples">240</strong></span>
+          <span class="run-stat">Test samples: <strong id="gcn-test-samples">60</strong></span>
+          <span class="run-stat">Epochs: <strong id="gcn-epochs">10</strong></span>
+          <span class="run-stat">Duration: <strong id="gcn-duration">1.04s</strong></span>
+        </div>
+      </div>
+
+      <div id="gcn-chart-loading" class="state-container state-loading">Loading training history...</div>
+      <div id="gcn-chart-error" class="state-container state-error">Could not load GCN training data.</div>
+      <div class="chart-wrapper" id="gcn-chart-wrap">
+        <div class="chart-title">GCN Training Curve: Loss and Accuracy Over Epochs</div>
+        <svg id="gcn-chart-svg" class="chart-svg" height="180" aria-label="GCN training curve"></svg>
+        <div class="chart-legend">
+          <span class="chart-legend-item"><span class="chart-legend-line" style="background:#b45309;"></span>Train Loss</span>
+          <span class="chart-legend-item"><span class="chart-legend-line" style="background:#15803d;"></span>Train Acc (%)</span>
+          <span class="chart-legend-item"><span class="chart-legend-line" style="background:#0284c7; border-top: 2px dashed #0284c7; background: none; border-bottom: none; border-left: none; border-right:none; height:0; width:18px; display:inline-block; vertical-align:middle;"></span>Test Acc (%)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: ST-GCN EXPERIMENT -->
+    <section id="stgcn-experiment">
+      <h2>8. Real Experiment: Spatio-Temporal GCN (ST-GCN) Sign Recognition</h2>
+      <p style="color: var(--text-muted);">
+        Recognizing 8 American Sign Language (ASL) glosses from dynamic keypoint sequences.
+
+        Tensor shape: <code>[Batch, Channels=3, Timesteps=30, Vertices=21]</code>.
+      </p>
+
+      <div class="result-run-card" id="stgcn-run-card">
+        <div class="run-header">
+          <span class="run-title">ST-GCN on How2Sign + iSign Sequences</span>
+          <span class="run-tag" id="stgcn-device-tag">cuda:0 · RTX 5050</span>
+        </div>
+        <div class="run-stats">
+          <span class="run-stat">Final validation accuracy: <strong id="stgcn-final-acc" style="color: var(--accent-success);">100.0%</strong></span>
+          <span class="run-stat">Final validation loss: <strong id="stgcn-final-loss">0.1683</strong></span>
+          <span class="run-stat">Gloss classes: <strong id="stgcn-classes">8</strong></span>
+          <span class="run-stat">Epochs: <strong id="stgcn-epochs">10</strong></span>
+          <span class="run-stat">Duration: <strong id="stgcn-duration">1.04s</strong></span>
+        </div>
+      </div>
+
+      <div id="stgcn-glosses-wrap" style="margin-bottom: 0.75rem;">
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem;">Target Gloss Classes:</div>
+        <div id="stgcn-gloss-tags" style="display: flex; flex-wrap: wrap; gap: 0.4rem;"></div>
+      </div>
+
+      <div id="stgcn-chart-loading" class="state-container state-loading">Loading ST-GCN training history...</div>
+      <div id="stgcn-chart-error" class="state-container state-error">Could not load ST-GCN data.</div>
+      <div class="chart-wrapper" id="stgcn-chart-wrap">
+        <div class="chart-title">ST-GCN Training Curve: Loss and Validation Accuracy</div>
+        <svg id="stgcn-chart-svg" class="chart-svg" height="180" aria-label="ST-GCN training curve"></svg>
+        <div class="chart-legend">
+          <span class="chart-legend-item"><span class="chart-legend-line" style="background:#b45309;"></span>Train Loss</span>
+          <span class="chart-legend-item"><span class="chart-legend-line" style="background:#7c3aed;"></span>Val Loss</span>
+          <span class="chart-legend-item"><span class="chart-legend-line" style="background:#15803d;"></span>Val Accuracy (%)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 9: PYG CODE -->
+    <section id="pyg-code">
+      <h2>9. Production Code: PyTorch Geometric Implementations</h2>
+      <p>
+        Complete PyTorch Geometric (PyG) production code for all four paradigms evaluated on Zachary's Karate Club.
+      </p>
+
+      <h3>1. 2-Layer GCN Node Classification on KarateClub</h3>
+      <pre><code><span class="tok-kw">import</span> torch
+<span class="tok-kw">import</span> torch.nn <span class="tok-kw">as</span> <span class="tok-bi">nn</span>
+<span class="tok-kw">from</span> torch_geometric.datasets <span class="tok-kw">import</span> KarateClub
+<span class="tok-kw">from</span> torch_geometric.nn <span class="tok-kw">import</span> GCNConv
+
+<span class="tok-cm"># Load canonical 34-node benchmark (Zachary, 1977)</span>
+data <span class="tok-op">=</span> <span class="tok-fn">KarateClub</span>()[<span class="tok-num">0</span>]
+
+<span class="tok-kw">class</span> <span class="tok-cls">KarateGCN</span>(<span class="tok-bi">nn</span>.Module):
+    <span class="tok-kw">def</span> <span class="tok-fn">__init__</span>(self, in_features, hidden_dim, num_classes):
+        <span class="tok-fn">super</span>().<span class="tok-fn">__init__</span>()
+        <span class="tok-cm"># First convolution: combines 1-hop neighborhood with Kipf-Welling normalization</span>
+        self.conv1 <span class="tok-op">=</span> <span class="tok-fn">GCNConv</span>(in_features, hidden_dim)
+        <span class="tok-cm"># Second convolution: expands receptive field to 2-hop community paths</span>
+        self.conv2 <span class="tok-op">=</span> <span class="tok-fn">GCNConv</span>(hidden_dim, hidden_dim)
+        self.classifier <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">Linear</span>(hidden_dim, num_classes)
+
+    <span class="tok-kw">def</span> <span class="tok-fn">forward</span>(self, x, edge_index):
+        h <span class="tok-op">=</span> self.<span class="tok-fn">conv1</span>(x, edge_index).<span class="tok-fn">relu</span>()
+        h <span class="tok-op">=</span> self.<span class="tok-fn">conv2</span>(h, edge_index).<span class="tok-fn">relu</span>()
+        <span class="tok-kw">return</span> self.<span class="tok-fn">classifier</span>(h), h
+
+model <span class="tok-op">=</span> <span class="tok-fn">KarateGCN</span>(in_features=data.num_features, hidden_dim=<span class="tok-num">16</span>, num_classes=<span class="tok-num">4</span>)
+optimizer <span class="tok-op">=</span> torch.optim.<span class="tok-fn">Adam</span>(model.<span class="tok-fn">parameters</span>(), lr=<span class="tok-num">0.01</span>, weight_decay=<span class="tok-num">5e-4</span>)
+criterion <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">CrossEntropyLoss</span>()
+
+<span class="tok-kw">for</span> epoch <span class="tok-kw">in</span> <span class="tok-fn">range</span>(<span class="tok-num">101</span>):
+    optimizer.<span class="tok-fn">zero_grad</span>()
+    logits, _ <span class="tok-op">=</span> <span class="tok-fn">model</span>(data.x, data.edge_index)
+    loss <span class="tok-op">=</span> <span class="tok-fn">criterion</span>(logits, data.y)
+    loss.<span class="tok-fn">backward</span>()
+    optimizer.<span class="tok-fn">step</span>()</code></pre>
+
+      <h3>2. GraphSAGE on KarateClub (Sampling &amp; Concatenation)</h3>
+      <pre><code><span class="tok-kw">from</span> torch_geometric.nn <span class="tok-kw">import</span> SAGEConv
+
+<span class="tok-kw">class</span> <span class="tok-cls">KarateGraphSAGE</span>(<span class="tok-bi">nn</span>.Module):
+    <span class="tok-kw">def</span> <span class="tok-fn">__init__</span>(self, in_features, hidden_dim, num_classes):
+        <span class="tok-fn">super</span>().<span class="tok-fn">__init__</span>()
+        <span class="tok-cm"># SAGEConv uses mean aggregation and explicit self-concatenation [h_v || h_N(v)]</span>
+        self.conv1 <span class="tok-op">=</span> <span class="tok-fn">SAGEConv</span>(in_features, hidden_dim, aggr=<span class="tok-str">'mean'</span>)
+        self.conv2 <span class="tok-op">=</span> <span class="tok-fn">SAGEConv</span>(hidden_dim, hidden_dim, aggr=<span class="tok-str">'mean'</span>)
+        self.classifier <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">Linear</span>(hidden_dim, num_classes)
+
+    <span class="tok-kw">def</span> <span class="tok-fn">forward</span>(self, x, edge_index):
+        h <span class="tok-op">=</span> self.<span class="tok-fn">conv1</span>(x, edge_index).<span class="tok-fn">relu</span>()
+        h <span class="tok-op">=</span> self.<span class="tok-fn">conv2</span>(h, edge_index).<span class="tok-fn">relu</span>()
+        <span class="tok-kw">return</span> self.<span class="tok-fn">classifier</span>(h)</code></pre>
+
+      <h3>3. Multi-Head GAT on KarateClub</h3>
+      <pre><code><span class="tok-kw">from</span> torch_geometric.nn <span class="tok-kw">import</span> GATConv
+
+<span class="tok-kw">class</span> <span class="tok-cls">KarateGAT</span>(<span class="tok-bi">nn</span>.Module):
+    <span class="tok-kw">def</span> <span class="tok-fn">__init__</span>(self, in_features, hidden_dim, num_classes, heads=<span class="tok-num">4</span>):
+        <span class="tok-fn">super</span>().<span class="tok-fn">__init__</span>()
+        <span class="tok-cm"># 4-head attention allows discovering distinct sub-community alignment patterns</span>
+        self.gat1 <span class="tok-op">=</span> <span class="tok-fn">GATConv</span>(in_features, hidden_dim, heads=heads, concat=<span class="tok-kw">True</span>)
+        self.gat2 <span class="tok-op">=</span> <span class="tok-fn">GATConv</span>(hidden_dim <span class="tok-op">*</span> heads, hidden_dim, heads=<span class="tok-num">1</span>, concat=<span class="tok-kw">False</span>)
+        self.classifier <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">Linear</span>(hidden_dim, num_classes)
+
+    <span class="tok-kw">def</span> <span class="tok-fn">forward</span>(self, x, edge_index):
+        h <span class="tok-op">=</span> self.<span class="tok-fn">gat1</span>(x, edge_index).<span class="tok-fn">elu</span>()
+        h <span class="tok-op">=</span> self.<span class="tok-fn">gat2</span>(h, edge_index).<span class="tok-fn">elu</span>()
+        <span class="tok-kw">return</span> self.<span class="tok-fn">classifier</span>(h)</code></pre>
+
+      <h3>4. GraphGPS Layer with Laplacian Positional Encodings</h3>
+      <pre><code><span class="tok-kw">from</span> torch_geometric.nn <span class="tok-kw">import</span> GPSConv, GCNConv
+
+<span class="tok-kw">class</span> <span class="tok-cls">KarateGraphGPS</span>(<span class="tok-bi">nn</span>.Module):
+    <span class="tok-kw">def</span> <span class="tok-fn">__init__</span>(self, in_dim, pe_dim, hidden_dim, out_classes):
+        <span class="tok-fn">super</span>().<span class="tok-fn">__init__</span>()
+        self.node_encoder <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">Linear</span>(in_dim, hidden_dim)
+        self.pe_encoder <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">Linear</span>(pe_dim, hidden_dim)
+
+        <span class="tok-cm"># GPSConv: Combines local GCN with global Multi-Head Attention in parallel</span>
+        self.gps_layer <span class="tok-op">=</span> <span class="tok-fn">GPSConv</span>(
+            channels=hidden_dim,
+            conv<span class="tok-op">=</span><span class="tok-fn">GCNConv</span>(hidden_dim, hidden_dim),
+            heads=<span class="tok-num">4</span>,
+            dropout=<span class="tok-num">0.1</span>
+        )
+        self.classifier <span class="tok-op">=</span> <span class="tok-bi">nn</span>.<span class="tok-fn">Linear</span>(hidden_dim, out_classes)
+
+    <span class="tok-kw">def</span> <span class="tok-fn">forward</span>(self, x, pe, edge_index):
+        <span class="tok-cm"># Fuse node features with Laplacian spectral coordinates</span>
+        h <span class="tok-op">=</span> self.<span class="tok-fn">node_encoder</span>(x) <span class="tok-op">+</span> self.<span class="tok-fn">pe_encoder</span>(pe)
+        h <span class="tok-op">=</span> self.<span class="tok-fn">gps_layer</span>(h, edge_index)
+        <span class="tok-kw">return</span> self.<span class="tok-fn">classifier</span>(h)</code></pre>
+    </section>
+
+  </main>
+
+  <!-- Part 1: 5-Node Multi-Architecture Simulator Logic -->
+  <script>
+// 5-Node Multi-Architecture Simulator Logic
+    const simNodes = [
+      { id: 0, x: 80,  y: 80,  val: 10.0, initVal: 10.0 },
+      { id: 1, x: 230, y: 60,  val: 0.0,  initVal: 0.0  },
+      { id: 2, x: 370, y: 130, val: 0.0,  initVal: 0.0  },
+      { id: 3, x: 230, y: 240, val: 0.0,  initVal: 0.0  },
+      { id: 4, x: 80,  y: 240, val: 0.0,  initVal: 0.0  }
+    ];
+
+    const simEdges = [
+      [0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [1, 3]
+    ];
+
+    let currentSimMode = "diffusion";
+    let simIteration = 0;
+    let draggedSimNode = null;
+    let simParticles = [];
+    let isSimAnimating = false;
+    let simCanvas, simCtx;
+
+    function getSimNeighbors(nodeId) {
+      const neighbors = [];
+      simEdges.forEach(([u, v]) => {
+        if (u === nodeId) neighbors.push(v);
+        if (v === nodeId) neighbors.push(u);
+      });
+      return neighbors;
+    }
+
+    function setSimMode(mode) {
+      currentSimMode = mode;
+      document.querySelectorAll(".sim-mode-group button").forEach(b => b.classList.remove("active"));
+      const activeBtn = document.getElementById(`sim-mode-${mode === "diffusion" ? "diff" : mode}`);
+      if (activeBtn) activeBtn.classList.add("active");
+
+      const badgeMap = {
+        diffusion: "Pure Heat Diffusion",
+        gcn: "GCN (Symmetric Norm)",
+        sage: "GraphSAGE (Mean + Self)",
+        gat: "GAT (Attention Weighted)",
+        gps: "GraphGPS (Local + Global)"
+      };
+      const badge = document.getElementById("simModeBadge");
+      if (badge) badge.textContent = badgeMap[mode] || mode;
+
+      simNodes.forEach(node => { node.val = node.initVal; });
+      simIteration = 0;
+      renderSimGraph();
+      updateSimTable();
+      updateStepLog("Mode switched. Initialized at k=0. Click 'Execute 1 Layer' to observe propagation.");
+    }
+
+    function initDiffusionSim() {
+      simCanvas = document.getElementById("graphCanvas");
+      if (!simCanvas) return;
+      simCtx = simCanvas.getContext("2d");
+
+      simCanvas.addEventListener("mousedown", (e) => {
+        const rect = simCanvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        draggedSimNode = simNodes.find(n => Math.hypot(n.x - mouseX, n.y - mouseY) < 24);
+      });
+
+      simCanvas.addEventListener("mousemove", (e) => {
+        if (!draggedSimNode) return;
+        const rect = simCanvas.getBoundingClientRect();
+        draggedSimNode.x = e.clientX - rect.left;
+        draggedSimNode.y = e.clientY - rect.top;
+        if (!isSimAnimating) renderSimGraph();
+      });
+
+      simCanvas.addEventListener("mouseup", () => { draggedSimNode = null; });
+      simCanvas.addEventListener("mouseleave", () => { draggedSimNode = null; });
+
+      const stepBtn = document.getElementById("stepBtn");
+      if (stepBtn) {
+        stepBtn.addEventListener("click", () => {
+          if (isSimAnimating || simIteration >= 10) return;
+          const nextVals = computeNextSimState();
+          triggerSimAnimation(nextVals);
+        });
+      }
+
+      const step10Btn = document.getElementById("step10Btn");
+      if (step10Btn) {
+        step10Btn.addEventListener("click", () => {
+          if (isSimAnimating) return;
+          while (simIteration < 10) {
+            const nextVals = computeNextSimState();
+            simNodes.forEach((node, idx) => { node.val = nextVals[idx]; });
+            simIteration++;
+          }
+          renderSimGraph();
+          updateSimTable();
+          explainCurrentStep(10);
+        });
+      }
+
+      const resetBtn = document.getElementById("resetBtn");
+      if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+          if (isSimAnimating) return;
+          simNodes.forEach(node => { node.val = node.initVal; });
+          simIteration = 0;
+          renderSimGraph();
+          updateSimTable();
+          updateStepLog("Reset to k=0. Node v0 holds 10.0; all others hold 0.0.");
+        });
+      }
+
+      renderSimGraph();
+      updateSimTable();
+    }
+
+    function renderSimGraph() {
+      if (!simCtx) return;
+      simCtx.clearRect(0, 0, simCanvas.width, simCanvas.height);
+
+      // Draw Edges
+      simCtx.strokeStyle = "#94a3b8";
+      simCtx.lineWidth = 2.5;
+      simEdges.forEach(([u, v]) => {
+        simCtx.beginPath();
+        simCtx.moveTo(simNodes[u].x, simNodes[u].y);
+        simCtx.lineTo(simNodes[v].x, simNodes[v].y);
+        simCtx.stroke();
+      });
+
+      // Animated Particles
+      if (isSimAnimating) {
+        simCtx.fillStyle = "#b45309";
+        simParticles.forEach(p => {
+          simCtx.beginPath();
+          simCtx.arc(p.x, p.y, 4.5, 0, 2 * Math.PI);
+          simCtx.fill();
+        });
+      }
+
+      // Draw Nodes
+      simNodes.forEach(node => {
+        const intensity = Math.min(node.val / 10.0, 1.0);
+        const r = Math.round(241 - intensity * (241 - 180));
+        const g = Math.round(245 - intensity * (245 - 83));
+        const b = Math.round(249 - intensity * (249 - 9));
+
+        simCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        simCtx.beginPath();
+        simCtx.arc(node.x, node.y, 22, 0, 2 * Math.PI);
+        simCtx.fill();
+
+        simCtx.strokeStyle = intensity > 0.3 ? "#78350f" : "#0f172a";
+        simCtx.lineWidth = 2;
+        simCtx.stroke();
+
+        simCtx.fillStyle = intensity > 0.5 ? "#ffffff" : "#0f172a";
+        simCtx.font = "bold 13px 'IBM Plex Mono', monospace";
+        simCtx.textAlign = "center";
+        simCtx.textBaseline = "middle";
+        simCtx.fillText(`v${node.id}`, node.x, node.y - 5);
+        simCtx.font = "10px 'IBM Plex Mono', monospace";
+        simCtx.fillText(node.val.toFixed(2), node.x, node.y + 9);
+      });
+    }
+
+    function updateSimTable() {
+      const tbody = document.getElementById("stateTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+      simNodes.forEach(node => {
+        const deg = getSimNeighbors(node.id).length;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><strong>v${node.id}</strong></td>
+          <td>${deg}</td>
+          <td>${node.initVal.toFixed(1)}</td>
+          <td style="font-weight: 700; color: #b45309;">${node.val.toFixed(3)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+      const lbl = document.getElementById("iterLabel");
+      if (lbl) lbl.textContent = simIteration;
+    }
+
+    function computeNextSimState() {
+      const nextVals = [];
+
+      if (currentSimMode === "diffusion") {
+        // Pure discrete heat diffusion: h_v^(k) = 0.6 * h_v + 0.4 * Mean(neighbors)
+        simNodes.forEach(node => {
+          const neighbors = getSimNeighbors(node.id);
+          const sumN = neighbors.reduce((acc, id) => acc + simNodes[id].val, 0);
+          const meanN = neighbors.length > 0 ? sumN / neighbors.length : 0;
+          nextVals.push(0.6 * node.val + 0.4 * meanN);
+        });
+      } else if (currentSimMode === "gcn") {
+        // GCN symmetric normalization: sum over (N(v) U {v}) of 1/sqrt((d_v+1)(d_u+1)) * h_u
+        simNodes.forEach(node => {
+          const neighbors = getSimNeighbors(node.id);
+          const d_v = neighbors.length + 1;
+          let acc = (1.0 / d_v) * node.val;
+          neighbors.forEach(u => {
+            const d_u = getSimNeighbors(u).length + 1;
+            acc += (1.0 / Math.sqrt(d_v * d_u)) * simNodes[u].val;
+          });
+          nextVals.push(acc);
+        });
+      } else if (currentSimMode === "sage") {
+        // GraphSAGE: 0.5 * h_v + 0.5 * Mean(neighbors)
+        simNodes.forEach(node => {
+          const neighbors = getSimNeighbors(node.id);
+          const meanN = neighbors.length > 0
+            ? neighbors.reduce((acc, id) => acc + simNodes[id].val, 0) / neighbors.length
+            : 0;
+          nextVals.push(0.5 * node.val + 0.5 * meanN);
+        });
+      } else if (currentSimMode === "gat") {
+        // GAT: Attention weighting where higher-value senders receive slightly higher attention
+        simNodes.forEach(node => {
+          const neighbors = [...getSimNeighbors(node.id), node.id];
+          const unnormalized = neighbors.map(u => Math.exp(0.15 * simNodes[u].val));
+          const sumExp = unnormalized.reduce((a, b) => a + b, 0);
+          let acc = 0;
+          neighbors.forEach((u, i) => {
+            acc += (unnormalized[i] / sumExp) * simNodes[u].val;
+          });
+          nextVals.push(acc);
+        });
+      } else if (currentSimMode === "gps") {
+        // GraphGPS: 0.7 * Local GCN + 0.3 * Global mean attention over all 5 nodes
+        const globalMean = simNodes.reduce((a, b) => a + b.val, 0) / simNodes.length;
+        simNodes.forEach(node => {
+          const neighbors = getSimNeighbors(node.id);
+          const d_v = neighbors.length + 1;
+          let localGcn = (1.0 / d_v) * node.val;
+          neighbors.forEach(u => {
+            const d_u = getSimNeighbors(u).length + 1;
+            localGcn += (1.0 / Math.sqrt(d_v * d_u)) * simNodes[u].val;
+          });
+          nextVals.push(0.7 * localGcn + 0.3 * globalMean);
+        });
+      }
+
+      return nextVals;
+    }
+
+    function triggerSimAnimation(nextVals) {
+      if (isSimAnimating) return;
+      isSimAnimating = true;
+      simParticles = [];
+
+      simEdges.forEach(([u, v]) => {
+        simParticles.push({ sx: simNodes[u].x, sy: simNodes[u].y, tx: simNodes[v].x, ty: simNodes[v].y, progress: 0 });
+        simParticles.push({ sx: simNodes[v].x, sy: simNodes[v].y, tx: simNodes[u].x, ty: simNodes[u].y, progress: 0 });
+      });
+
+      let start = null;
+      const duration = 450;
+
+      function animate(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+        const progress = Math.min(elapsed / duration, 1.0);
+        const ease = progress * (2 - progress);
+
+        simParticles.forEach(p => {
+          p.x = p.sx + (p.tx - p.sx) * ease;
+          p.y = p.sy + (p.ty - p.sy) * ease;
+        });
+
+        renderSimGraph();
+
+        if (progress < 1.0) {
+          requestAnimationFrame(animate);
+        } else {
+          isSimAnimating = false;
+          simParticles = [];
+          simNodes.forEach((node, idx) => { node.val = nextVals[idx]; });
+          simIteration++;
+          renderSimGraph();
+          updateSimTable();
+          explainCurrentStep(simIteration);
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function updateStepLog(text) {
+      const el = document.getElementById("simLogContent");
+      if (el) el.innerHTML = text;
+    }
+
+    function explainCurrentStep(k) {
+      const modeNames = {
+        diffusion: "Pure Heat Diffusion",
+        gcn: "GCN",
+        sage: "GraphSAGE",
+        gat: "GAT",
+        gps: "GraphGPS"
+      };
+      const name = modeNames[currentSimMode];
+
+      if (k === 1) {
+        updateStepLog(`<strong>Step k=1 (${name}):</strong> Information has propagated 1 hop. Node v0 shared energy with direct neighbors v1 and v4. Nodes v2 and v3 begin receiving residual signals.`);
+      } else if (k === 2) {
+        updateStepLog(`<strong>Step k=2 (${name}):</strong> Receptive field now spans 2 hops. Bridge nodes v1 and v3 route information into opposite sides. Gradient between hub and leaves begins narrowing.`);
+      } else if (k === 3) {
+        updateStepLog(`<strong>Step k=3 (${name}):</strong> Receptive field spans graph diameter (3 hops). Every node has now observed information originating from v0. Representation differences reach optimal structural discrimination.`);
+      } else if (k >= 4 && k < 8) {
+        updateStepLog(`<strong>Step k=${k} (${name}):</strong> Multi-hop smoothing in progress. Variance among node states is actively decreasing. Nodes are approaching local equilibrium.`);
+      } else if (k >= 8 && k < 10) {
+        updateStepLog(`<strong>Step k=${k} (${name}):</strong> High layer depth. Approaching over-smoothing boundary. Features are highly homogeneous across all 5 vertices.`);
+      } else if (k === 10) {
+        if (currentSimMode === "diffusion") {
+          updateStepLog(`<strong>Step k=10 (Equilibrium Achieved):</strong> Physical harmonic equilibrium reached. All nodes converge to stationary state h* &approx; 2.00 (total conserved energy 10.0 / 5 = 2.00). Laplacian flux &Delta;h = 0 across all edges.`);
+        } else {
+          updateStepLog(`<strong>Step k=10 (Over-Smoothing Limit):</strong> Deep propagation limit. Receptive fields encompass the entire graph multiple times, demonstrating why deep standard GNNs collapse without residual connections or transformers.`);
+        }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initDiffusionSim();
+    });
+  </script>
+
+  <!-- Part 2: Advanced Systems, Matrix Heatmap, Karate Club, and Results Engine -->
+  <script defer src="learn/web/app.js"></script>
+</body>
+</html>

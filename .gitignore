@@ -1,0 +1,62 @@
+# Bytecode and runtime caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.mypy_cache/
+
+**/things_to_add.md
+**/repo_structure.txt
+**/env_setup.sh
+**/antigravity_directive.md
+
+# Environments and Conda
+.env
+.env.*
+*.env
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE, editor and OS artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+.ipynb_checkpoints/
+
+# Private keys, credentials, and secrets
+*.pem
+*.key
+credentials.json
+token.json
+secrets.json
+.secrets
+
+# Model checkpoints and weights
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.onnx
+
+# Raw and heavy datasets
+*.npz
+*.npy
+data/
+learn/data/
+**/asl_dataset/
