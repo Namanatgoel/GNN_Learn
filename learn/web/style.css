@@ -330,7 +330,7 @@ li {
   margin-bottom: 1rem;
 }
 
-/* Design Decision: Vertical stacking or generous 2-column layout to prevent formula clipping */
+/* Design Decision: Stacked step card gives mathematical formulas full width and prevents clipping */
 .math-step-list {
   display: flex;
   flex-direction: column;
@@ -338,30 +338,38 @@ li {
 }
 
 .math-step-row {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  align-items: center;
-  gap: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   background-color: var(--bg-card-muted);
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
+  padding: 0.85rem 1.15rem;
+  border-radius: 6px;
   border: 1px solid var(--border-card);
-}
-
-@media (max-width: 760px) {
-  .math-step-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-}
-
-.math-step-formula {
-  font-size: 0.95rem;
+  position: relative;
 }
 
 .math-step-desc {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  order: 1;
+}
+
+.math-step-formula {
+  order: 2;
+  font-size: 0.98rem;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-card);
+  border-radius: 4px;
+  border: 1px solid var(--border-card);
+  box-sizing: border-box;
+}
+
+.math-step-row .math-step-formula.latex-inspectable-wrap {
+  margin: 0.25rem 0 0 0;
 }
 
 .math-block {
@@ -1022,11 +1030,13 @@ p code, li code {
   stroke: currentColor !important;
 }
 
-/* Design Decision: Latent LaTeX math source inspector badge and collapsible panel */
+/* Design Decision: Latent LaTeX math source inspector badge and collapsible panel with reserved pill clearance */
 .latex-inspectable-wrap {
   position: relative;
   display: block;
   margin: 1.25rem 0;
+  padding-right: 3.5rem;
+  box-sizing: border-box;
 }
 
 .btn-latex-pill {
